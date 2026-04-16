@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 140 20% 99%;
+    --foreground: 160 40% 5%;
+
+    --card: 140 15% 98%;
+    --card-foreground: 160 40% 5%;
+
+    --popover: 140 15% 98%;
+    --popover-foreground: 160 40% 5%;
+
+    --primary: 196 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 147 100% 37%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 150 25% 95%;
+    --muted-foreground: 160 10% 40%;
+
+    --accent: 167 82% 55%;
+    --accent-foreground: 160 40% 5%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 150 18% 88%;
+    --input: 150 18% 88%;
+    --ring: 147 100% 37%;
+
+    --radius: 0.75rem;
+
+    --brand-blue: 196 100% 50%;
+    --brand-green: 147 100% 37%;
+    --brand-teal: 167 82% 55%;
+    --brand-dark: 160 40% 5%;
+
+    /* Biophilic tokens */
+    --leaf-light: 145 30% 94%;
+    --leaf-mid: 147 40% 88%;
+    --sunlight: 42 60% 95%;
+    --earth: 30 15% 92%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    /* Subtle paper grain texture */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.018'/%3E%3C/svg%3E");
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .section-curve {
+    position: relative;
+  }
+
+  .section-curve::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: inherit;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+
+  .decorative-dot {
+    @apply absolute rounded-full opacity-10;
+  }
+
+  /* Biophilic leaf accent — subtle inline SVG */
+  .leaf-accent::before {
+    content: '';
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 5C50 5 15 30 15 60C15 80 30 95 50 95C70 95 85 80 85 60C85 30 50 5 50 5Z' fill='none' stroke='%2300BF63' stroke-width='1.5'/%3E%3Cpath d='M50 20V85' fill='none' stroke='%2300BF63' stroke-width='1'/%3E%3Cpath d='M50 40C40 35 25 40 25 55' fill='none' stroke='%2300BF63' stroke-width='0.8'/%3E%3Cpath d='M50 55C60 50 75 52 75 62' fill='none' stroke='%2300BF63' stroke-width='0.8'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+  }
+
+  /* Organic card style */
+  .organic-card {
+    @apply bg-card rounded-2xl border border-border/60 shadow-sm;
+    transition: all 180ms ease;
+  }
+  .organic-card:hover {
+    @apply shadow-md border-secondary/20;
+    transform: translateY(-2px);
+  }
+
+  /* Sunlight hover effect */
+  .sunlight-hover {
+    transition: all 180ms ease;
+  }
+  .sunlight-hover:hover {
+    filter: brightness(1.04);
+  }
+}
