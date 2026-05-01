@@ -22,8 +22,13 @@ async function bootstrap() {
   await ensureDatabaseReady();
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // ✅ Fichiers statiques EN PREMIER
+  app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads/" });
+
   const authService = app.get(AuthService);
   await authService.ensureAdmin();
+
   const allowedOrigins = parseAllowedOrigins();
 
   app.enableCors({
@@ -36,10 +41,11 @@ async function bootstrap() {
     },
     credentials: true,
   });
+
   app.use(cookieParser());
   app.use(json({ limit: "10mb" }));
   app.use(urlencoded({ extended: true, limit: "10mb" }));
-  app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads/" });
+
   await app.listen(Number(process.env.PORT ?? 3001));
 }
 

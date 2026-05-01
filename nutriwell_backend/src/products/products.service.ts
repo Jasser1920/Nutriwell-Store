@@ -118,7 +118,7 @@ export class ProductsService {
 
   async getAdminById(id: string) {
     await this.ensureNutritionTableColumn();
-
+   //changeshere
     const [rows] = await this.db.query<RowDataPacket[]>("SELECT * FROM products WHERE id = ? LIMIT 1", [id]);
     const p: any = rows[0];
     if (!p) throw new NotFoundException("Product not found");
