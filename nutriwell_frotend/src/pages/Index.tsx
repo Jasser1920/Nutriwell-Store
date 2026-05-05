@@ -26,9 +26,9 @@ const defaultHomeContent: HomePageContent = {
     subtitle:
       "Découvrez des conseils validés par des experts pour vous sentir au meilleur de votre forme — de l'activité physique à l'alimentation.",
     cards: [
-      { title: "Bien vieillir au quotidien", image: infoCard1, linkLabel: "En savoir plus", linkHref: "#" },
-      { title: "Nutrition simplifiée", image: infoCard2, linkLabel: "En savoir plus", linkHref: "#" },
-      { title: "Le plaisir dans chaque repas", image: infoCard3, linkLabel: "En savoir plus", linkHref: "#" },
+      { title: "Bien vieillir au quotidien", image: infoCard1, linkLabel: "En savoir plus", linkHref: "/conseils" },
+      { title: "Nutrition simplifiée", image: infoCard2, linkLabel: "En savoir plus", linkHref: "/products" },
+      { title: "Le plaisir dans chaque repas", image: infoCard3, linkLabel: "En savoir plus", linkHref: "/recipes" },
     ],
     ctaLabel: "Découvrir nos conseils",
     ctaHref: "/conseils",

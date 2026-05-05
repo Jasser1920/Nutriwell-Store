@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
+import { Link } from "react-router-dom";
 
 const tips = [
   "En collation entre les repas pour maintenir vos apports",
@@ -34,9 +35,9 @@ const UsageBanner = () => (
                 </li>
               ))}
             </ul>
-            <a href="#" className="inline-block text-primary font-semibold text-sm hover:underline">
+            <Link to="/recipes" className="inline-block text-primary font-semibold text-sm hover:underline">
               Voir toutes nos recettes →
-            </a>
+            </Link>
           </div>
         </ScrollReveal>
       </div>

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
 import WaveDivider from "./WaveDivider";
@@ -21,14 +22,21 @@ const InfoCardsSection = ({ content }: InfoCardsSectionProps) => {
     subtitle:
       "Découvrez des conseils validés par des experts pour vous sentir au meilleur de votre forme — de l'activité physique à l'alimentation.",
     cards: [
-      { title: "Bien vieillir au quotidien", image: infoCard1, linkLabel: "En savoir plus", linkHref: "#" },
-      { title: "Nutrition simplifiée", image: infoCard2, linkLabel: "En savoir plus", linkHref: "#" },
-      { title: "Le plaisir dans chaque repas", image: infoCard3, linkLabel: "En savoir plus", linkHref: "#" },
+      { title: "Bien vieillir au quotidien", image: infoCard1, linkLabel: "En savoir plus", linkHref: "/conseils" },
+      { title: "Nutrition simplifiée", image: infoCard2, linkLabel: "En savoir plus", linkHref: "/products" },
+      { title: "Le plaisir dans chaque repas", image: infoCard3, linkLabel: "En savoir plus", linkHref: "/recipes" },
     ],
     ctaLabel: "Découvrir nos conseils",
     ctaHref: "/conseils",
   };
   const ctaHref = sectionContent.ctaHref && sectionContent.ctaHref !== "#" ? sectionContent.ctaHref : "/conseils";
+  const resolveCardHref = (cardTitle: string, linkHref: string) => {
+    if (linkHref && linkHref !== "#") return linkHref;
+    if (cardTitle === "Bien vieillir au quotidien") return "/conseils";
+    if (cardTitle === "Nutrition simplifiée") return "/products";
+    if (cardTitle === "Le plaisir dans chaque repas") return "/recipes";
+    return "/conseils";
+  };
 
   return (
     <section id="info" className="relative py-28 bg-background overflow-hidden">
@@ -70,12 +78,12 @@ const InfoCardsSection = ({ content }: InfoCardsSectionProps) => {
                   <h3 className="font-heading text-lg font-bold mb-3 text-foreground">
                     {card.title}
                   </h3>
-                  <a
-                    href={card.linkHref}
+                  <Link
+                    to={resolveCardHref(card.title, card.linkHref)}
                     className="inline-flex items-center gap-1.5 text-secondary font-semibold text-sm hover:gap-3 transition-all duration-200"
                   >
                     {card.linkLabel} <ArrowRight size={16} />
-                  </a>
+                  </Link>
                 </div>
               </div>
             </ScrollReveal>
@@ -84,12 +92,12 @@ const InfoCardsSection = ({ content }: InfoCardsSectionProps) => {
 
         <ScrollReveal>
           <div className="text-center">
-            <a
-              href={ctaHref}
+            <Link
+              to={ctaHref}
               className="inline-flex items-center gap-2 bg-secondary text-secondary-foreground px-8 py-3.5 rounded-full font-semibold hover:bg-secondary/90 hover:shadow-md transition-all duration-200 text-[15px]"
             >
               {sectionContent.ctaLabel}
-            </a>
+            </Link>
           </div>
         </ScrollReveal>
       </div>

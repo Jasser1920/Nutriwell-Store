@@ -91,9 +91,9 @@ const defaultHomeContent: HomePageContent = {
     subtitle:
       "Découvrez des conseils validés par des experts pour vous sentir au meilleur de votre forme — de l'activité physique à l'alimentation.",
     cards: [
-      { title: "Bien vieillir au quotidien", image: infoCard1, linkLabel: "En savoir plus", linkHref: "#" },
-      { title: "Nutrition simplifiée", image: infoCard2, linkLabel: "En savoir plus", linkHref: "#" },
-      { title: "Le plaisir dans chaque repas", image: infoCard3, linkLabel: "En savoir plus", linkHref: "#" },
+      { title: "Bien vieillir au quotidien", image: infoCard1, linkLabel: "En savoir plus", linkHref: "/conseils" },
+      { title: "Nutrition simplifiée", image: infoCard2, linkLabel: "En savoir plus", linkHref: "/products" },
+      { title: "Le plaisir dans chaque repas", image: infoCard3, linkLabel: "En savoir plus", linkHref: "/recipes" },
     ],
     ctaLabel: "Découvrir nos conseils",
     ctaHref: "/conseils",
@@ -433,6 +433,91 @@ const setByPath = (obj: unknown, path: string[], value: string) => {
   return clone;
 };
 
+const renderSectionPreview = (pageKey: PageKey, sectionId: string, draft: PageContentMap[PageKey]) => {
+  if (pageKey !== "about") {
+    const firstField = (pageConfigs[pageKey].sections.find((s) => s.id === sectionId)?.fields ?? [])[0];
+    const preview = firstField ? (getByPath(draft, firstField.path) as string) : "";
+    return (
+      <>
+        <p className="text-sm font-semibold text-foreground">{pageConfigs[pageKey].sections.find((s) => s.id === sectionId)?.title}</p>
+        <p className="text-xs text-muted-foreground mt-1">{pageConfigs[pageKey].sections.find((s) => s.id === sectionId)?.subtitle}</p>
+        <p className="mt-2 truncate text-xs text-foreground/80">{preview || "Cliquez pour éditer"}</p>
+      </>
+    );
+  }
+
+  // About page: render a more structured visual preview
+  const about = draft as unknown as typeof defaultAboutContent;
+  switch (sectionId) {
+    case "hero":
+      return (
+        <div>
+          <div className="mb-2 h-28 w-full overflow-hidden rounded-md border border-border bg-background">
+            {about.hero?.image ? (
+              <img src={about.hero.image} alt="hero" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-28 items-center justify-center text-sm text-muted-foreground">Image hero</div>
+            )}
+          </div>
+          <p className="text-sm font-semibold text-foreground">{about.hero?.title ?? "Titre"}</p>
+        </div>
+      );
+    case "intro":
+      return (
+        <div>
+          <p className="text-sm font-semibold text-foreground">Introduction</p>
+          <p className="mt-2 text-xs text-foreground/80 line-clamp-3">{about.intro?.text ?? "Texte intro"}</p>
+        </div>
+      );
+    case "positioning":
+      return (
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">{about.positioning?.title ?? "Titre"}</p>
+            <p className="mt-1 text-xs text-foreground/80 line-clamp-3">{about.positioning?.text1 ?? "Paragraphe"}</p>
+          </div>
+          <div className="w-28 overflow-hidden rounded-md border border-border">
+            {about.positioning?.image ? (
+              <img src={about.positioning.image} alt="positioning" className="h-20 w-full object-cover" />
+            ) : (
+              <div className="flex h-20 items-center justify-center text-sm text-muted-foreground">Image</div>
+            )}
+          </div>
+        </div>
+      );
+    case "manufacturing":
+      return (
+        <div className="flex gap-3">
+          <div className="w-28 overflow-hidden rounded-md border border-border">
+            {about.manufacturing?.image ? (
+              <img src={about.manufacturing.image} alt="manufacturing" className="h-20 w-full object-cover" />
+            ) : (
+              <div className="flex h-20 items-center justify-center text-sm text-muted-foreground">Image</div>
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">{about.manufacturing?.title ?? "Titre"}</p>
+            <p className="mt-1 text-xs text-foreground/80 line-clamp-3">{about.manufacturing?.text1 ?? "Paragraphe"}</p>
+          </div>
+        </div>
+      );
+    case "innovation":
+      return (
+        <div>
+          <div className="inline-block rounded-full bg-muted/30 px-3 py-1 text-xs font-semibold text-foreground">{about.innovation?.badge ?? "Badge"}</div>
+          <p className="mt-2 text-sm font-semibold text-foreground">{about.innovation?.title ?? "Titre"}</p>
+          <p className="mt-1 text-xs text-foreground/80 line-clamp-3">{about.innovation?.text ?? "Texte"}</p>
+        </div>
+      );
+    default:
+      return (
+        <>
+          <p className="text-sm font-semibold text-foreground">{sectionId}</p>
+        </>
+      );
+  }
+};
+
 const AdminContentEditor = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -502,8 +587,8 @@ const AdminContentEditor = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto w-full max-w-[1600px]">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="font-heading text-3xl font-bold text-foreground">Éditeur Visuel de Contenu</h1>
@@ -530,8 +615,8 @@ const AdminContentEditor = () => {
           </select>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+          <div className="min-w-0 flex-1 rounded-xl border border-border bg-card p-4">
             <p className="mb-3 text-xs text-muted-foreground">Maquette interactive (cliquez un bloc pour éditer)</p>
             <div className="grid gap-3">
               {config.sections.map((section) => {
@@ -547,20 +632,18 @@ const AdminContentEditor = () => {
                         : "border-border hover:bg-muted/50"
                     }`}
                   >
-                    <p className="text-sm font-semibold text-foreground">{section.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{section.subtitle}</p>
-                    <p className="mt-2 truncate text-xs text-foreground/80">{preview || "Cliquez pour éditer"}</p>
+                    {renderSectionPreview(pageKey, section.id, draft)}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-5">
+          <aside className="w-full shrink-0 rounded-xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-6 lg:w-[440px] xl:w-[460px]">
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Chargement...</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 min-w-0">
                 <div>
                   <h2 className="font-heading text-xl font-bold text-foreground">{activeSection.title}</h2>
                   <p className="text-sm text-muted-foreground">{activeSection.subtitle}</p>
@@ -620,8 +703,8 @@ const AdminContentEditor = () => {
                         <textarea
                           value={value}
                           onChange={(e) => setDraft((prev) => setByPath(prev, field.path, e.target.value))}
-                          rows={4}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          rows={5}
+                          className="w-full min-h-[7rem] max-w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm"
                         />
                       ) : (
                         <input
@@ -645,7 +728,7 @@ const AdminContentEditor = () => {
                 </button>
               </div>
             )}
-          </div>
+          </aside>
         </div>
       </div>
     </div>

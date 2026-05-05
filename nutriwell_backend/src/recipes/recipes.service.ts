@@ -3,6 +3,19 @@ import { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { MysqlService } from "../common/mysql.service";
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+/** Accept camelCase or snake_case from JSON clients (e.g. frontend sends prep_time). */
+const strField = (body: Record<string, unknown>, camel: string, snake: string) =>
+  str(body[camel] ?? body[snake]);
+
+const boolField = (body: Record<string, unknown>, camel: string, snake: string): boolean => {
+  const a = body[camel];
+  const b = body[snake];
+  if (typeof a === "boolean") return a;
+  if (typeof b === "boolean") return b;
+  if (a === 1 || a === "1") return true;
+  if (b === 1 || b === "1") return true;
+  return false;
+};
 const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => str(x)).filter(Boolean) : []);
 const parseArray = (raw: unknown) => {
   if (Array.isArray(raw)) return raw;
@@ -88,6 +101,37 @@ export class RecipesService {
     await this.db.execute("ALTER TABLE recipes ADD COLUMN nutrition_table_json LONGTEXT NULL");
   }
 
+  private async ensureRelatedProductSlugColumn() {
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS c
+       FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'recipes' AND column_name = 'related_product_slug'`,
+    );
+
+    const count = Number((rows[0] as any)?.c ?? 0);
+    if (count > 0) return;
+
+    await this.db.execute("ALTER TABLE recipes ADD COLUMN related_product_slug VARCHAR(191) NULL");
+  }
+
+  private async resolvePublishedRelatedProduct(productSlug: string): Promise<{ slug: string; name: string; image: string } | null> {
+    const slug = str(productSlug);
+    if (!slug) return null;
+
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      "SELECT slug, name, image FROM products WHERE slug = ? AND is_published = 1 LIMIT 1",
+      [slug],
+    );
+    const p = rows[0] as any;
+    if (!p) return null;
+
+    return {
+      slug: String(p.slug),
+      name: String(p.name ?? ""),
+      image: p.image != null ? String(p.image) : "",
+    };
+  }
+
   async listPublic(query: Record<string, unknown>) {
     const where: string[] = ["is_published = 1"];
     const params: any[] = [];
@@ -101,6 +145,7 @@ export class RecipesService {
 
   async getPublicBySlug(slug: string) {
     await this.ensureNutritionTableColumn();
+    await this.ensureRelatedProductSlugColumn();
 
     const [rows] = await this.db.query<RowDataPacket[]>("SELECT * FROM recipes WHERE slug = ? AND is_published = 1 LIMIT 1", [slug]);
     const r: any = rows[0];
@@ -113,20 +158,32 @@ export class RecipesService {
         rows: this.nutritionRowsFromLegacy(legacyNutrition),
       };
 
+    const ingredients = parseArray(r.ingredients);
+    const steps = parseArray(r.steps);
+    const prepTime =
+      r.prep_time != null && String(r.prep_time).trim() !== "" ? String(r.prep_time).trim() : "";
+
+    const relatedSlug =
+      r.related_product_slug != null && String(r.related_product_slug).trim() !== ""
+        ? String(r.related_product_slug).trim()
+        : "";
+    const relatedProduct = relatedSlug ? await this.resolvePublishedRelatedProduct(relatedSlug) : null;
+
     return {
       id: String(r.id),
       slug: r.slug,
       title: r.title,
       category: r.category,
       summary: r.summary,
-      prepTime: r.prep_time,
+      prepTime,
       servings: Number(r.servings),
       image: r.image ?? "",
-      ingredients: parseArray(r.ingredients),
-      steps: parseArray(r.steps),
+      ingredients,
+      steps,
       tips: parseArray(r.tips),
       nutrition: legacyNutrition,
       nutritionTable,
+      relatedProduct,
     };
   }
 
@@ -137,6 +194,7 @@ export class RecipesService {
 
   async getAdminById(id: string) {
     await this.ensureNutritionTableColumn();
+    await this.ensureRelatedProductSlugColumn();
 
     const [rows] = await this.db.query<RowDataPacket[]>("SELECT * FROM recipes WHERE id = ? LIMIT 1", [id]);
     const r: any = rows[0];
@@ -149,58 +207,74 @@ export class RecipesService {
         rows: this.nutritionRowsFromLegacy(legacyNutrition),
       };
 
+    const ingredients = parseArray(r.ingredients);
+    const steps = parseArray(r.steps);
+    const prepTime =
+      r.prep_time != null && String(r.prep_time).trim() !== "" ? String(r.prep_time).trim() : "";
+
+    const relatedProductSlug =
+      r.related_product_slug != null && String(r.related_product_slug).trim() !== ""
+        ? String(r.related_product_slug).trim()
+        : "";
+
     return {
       slug: r.slug,
       title: r.title,
       category: r.category,
       summary: r.summary,
-      prepTime: r.prep_time,
+      prepTime,
       servings: Number(r.servings),
       image: r.image ?? "",
-      ingredients: parseArray(r.ingredients),
-      steps: parseArray(r.steps),
+      ingredients,
+      steps,
       tips: parseArray(r.tips),
       nutrition: legacyNutrition,
       nutritionTable,
+      relatedProductSlug,
       isPublished: !!r.is_published,
     };
   }
 
   async save(body: Record<string, unknown>, id?: string) {
     await this.ensureNutritionTableColumn();
+    await this.ensureRelatedProductSlugColumn();
 
     const nutritionTable = this.normalizeNutritionTable(body.nutritionTable);
     const legacyNutrition = arr(body.nutrition);
     const nutritionForStorage = legacyNutrition.length ? legacyNutrition : this.legacyNutritionFromTable(nutritionTable);
+
+    const relatedProductSlugRaw = strField(body, "relatedProductSlug", "related_product_slug");
+    const related_product_slug = relatedProductSlugRaw || null;
 
     const payload = {
       slug: str(body.slug),
       title: str(body.title),
       category: str(body.category),
       summary: str(body.summary),
-      prep_time: str(body.prepTime),
+      prep_time: strField(body, "prepTime", "prep_time"),
       servings: Number(body.servings ?? 1) || 1,
       image: str(body.image) || null,
+      related_product_slug,
       ingredients: JSON.stringify(arr(body.ingredients)),
       steps: JSON.stringify(arr(body.steps)),
       tips: JSON.stringify(arr(body.tips)),
       nutrition: JSON.stringify(nutritionForStorage),
       nutrition_table_json: nutritionTable ? JSON.stringify(nutritionTable) : null,
-      is_published: body.isPublished ? 1 : 0,
+      is_published: boolField(body, "isPublished", "is_published") ? 1 : 0,
     };
 
     if (id) {
       const [res] = await this.db.execute<ResultSetHeader>(
-        "UPDATE recipes SET slug=?, title=?, category=?, summary=?, prep_time=?, servings=?, image=?, ingredients=?, steps=?, tips=?, nutrition=?, nutrition_table_json=?, is_published=? WHERE id=?",
-        [payload.slug,payload.title,payload.category,payload.summary,payload.prep_time,payload.servings,payload.image,payload.ingredients,payload.steps,payload.tips,payload.nutrition,payload.nutrition_table_json,payload.is_published,id],
+        "UPDATE recipes SET slug=?, title=?, category=?, summary=?, prep_time=?, servings=?, image=?, related_product_slug=?, ingredients=?, steps=?, tips=?, nutrition=?, nutrition_table_json=?, is_published=? WHERE id=?",
+        [payload.slug,payload.title,payload.category,payload.summary,payload.prep_time,payload.servings,payload.image,payload.related_product_slug,payload.ingredients,payload.steps,payload.tips,payload.nutrition,payload.nutrition_table_json,payload.is_published,id],
       );
       if (!res.affectedRows) throw new NotFoundException("Recipe not found");
       return { id };
     }
 
     const [res] = await this.db.execute<ResultSetHeader>(
-      "INSERT INTO recipes (slug, title, category, summary, prep_time, servings, image, ingredients, steps, tips, nutrition, nutrition_table_json, is_published) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [payload.slug,payload.title,payload.category,payload.summary,payload.prep_time,payload.servings,payload.image,payload.ingredients,payload.steps,payload.tips,payload.nutrition,payload.nutrition_table_json,payload.is_published],
+      "INSERT INTO recipes (slug, title, category, summary, prep_time, servings, image, related_product_slug, ingredients, steps, tips, nutrition, nutrition_table_json, is_published) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [payload.slug,payload.title,payload.category,payload.summary,payload.prep_time,payload.servings,payload.image,payload.related_product_slug,payload.ingredients,payload.steps,payload.tips,payload.nutrition,payload.nutrition_table_json,payload.is_published],
     );
     return { id: String(res.insertId) };
   }

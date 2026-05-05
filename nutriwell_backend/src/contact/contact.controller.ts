@@ -4,12 +4,13 @@ import { diskStorage } from "multer";
 import { mkdirSync } from "fs";
 import { join, relative } from "path";
 import { AdminGuard } from "../auth/admin.guard";
+import { UPLOADS_ROOT } from "../common/uploads-path";
 import { ContactService } from "./contact.service";
 
 const storage = diskStorage({
   destination: (req, file, cb) => {
     const email = String((req.body?.email ?? "anonymous")).toLowerCase().replace(/[^a-z0-9@._-]/g, "-") || "anonymous";
-    const dir = join(process.cwd(), "uploads", "contact-attachments", email);
+    const dir = join(UPLOADS_ROOT, "contact-attachments", email);
     mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -50,8 +51,7 @@ export class ContactController {
   @UseInterceptors(FileInterceptor("file", { storage }))
   async upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException("Attachment file is required");
-    const root = join(process.cwd(), "uploads");
-    const relativePath = relative(root, file.path).replace(/\\/g, "/");
+    const relativePath = relative(UPLOADS_ROOT, file.path).replace(/\\/g, "/");
     return {
       path: `/uploads/${relativePath}`,
       url: `${(process.env.PUBLIC_BASE_URL ?? "http://localhost:3001").replace(/\/+$/, "")}/uploads/${relativePath}`,

@@ -18,6 +18,12 @@ export interface RecipeListItem {
   updated_at: string;
 }
 
+export interface RecipeRelatedProduct {
+  slug: string;
+  name: string;
+  image: string;
+}
+
 export interface RecipeDetail {
   id: string;
   slug: string;
@@ -32,6 +38,8 @@ export interface RecipeDetail {
   tips: string[];
   nutrition: string[];
   nutritionTable?: NutritionTableInput;
+  /** Produit publié associé (résolu côté API depuis related_product_slug). */
+  relatedProduct?: RecipeRelatedProduct | null;
 }
 
 export interface RecipeFormInput {
@@ -42,6 +50,8 @@ export interface RecipeFormInput {
   prepTime: string;
   servings: number;
   image: string;
+  /** Slug du produit Nutriwell mis en avant sur la fiche recette (optionnel). */
+  relatedProductSlug: string;
   ingredients: string[];
   steps: string[];
   tips: string[];
@@ -68,11 +78,14 @@ export const fetchPublishedRecipes = async (category?: string): Promise<RecipeLi
 };
 
 export const fetchPublishedRecipeBySlug = async (slug: string): Promise<RecipeDetail | null> => {
-  const response = await apiRequest<{ recipe: RecipeDetail | null }>(`recipes/${slug}`, {
+  const response = await apiRequest<{ recipe: (RecipeDetail & { prep_time?: string }) | null }>(`recipes/${slug}`, {
     method: "GET",
     query: { published: true },
   });
-  return response.recipe;
+  const raw = response.recipe;
+  if (!raw) return null;
+  const prepTime = String(raw.prepTime ?? raw.prep_time ?? "").trim();
+  return { ...raw, prepTime };
 };
 
 export const fetchAdminRecipes = async (): Promise<RecipeListItem[]> => {
@@ -86,6 +99,7 @@ export const fetchAdminRecipeById = async (recipeId: string): Promise<RecipeForm
 };
 
 export const saveAdminRecipe = async (input: RecipeFormInput, recipeId?: string) => {
+  const relatedSlug = clean(input.relatedProductSlug);
   const payload = {
     slug: clean(input.slug),
     title: clean(input.title),
@@ -94,6 +108,7 @@ export const saveAdminRecipe = async (input: RecipeFormInput, recipeId?: string)
     prep_time: clean(input.prepTime),
     servings: Number(input.servings) || 1,
     image: clean(input.image) || null,
+    related_product_slug: relatedSlug || null,
     ingredients: input.ingredients.map(clean).filter(Boolean),
     steps: input.steps.map(clean).filter(Boolean),
     tips: input.tips.map(clean).filter(Boolean),

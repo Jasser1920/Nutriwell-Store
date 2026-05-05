@@ -4,13 +4,14 @@ import { diskStorage } from "multer";
 import { mkdirSync } from "fs";
 import { join, relative } from "path";
 import { AdminGuard } from "../auth/admin.guard";
+import { UPLOADS_ROOT } from "../common/uploads-path";
 import { ProductsService } from "./products.service";
 
 const storage = diskStorage({
   destination: (req, file, cb) => {
     const slug = String((req.body?.slug ?? "draft-product")).toLowerCase().replace(/[^a-z0-9-]/g, "-");
     const folder = String((req.body?.folder ?? "gallery")).toLowerCase().replace(/[^a-z0-9-]/g, "-");
-    const dir = join(process.cwd(), "uploads", "products", slug, folder);
+    const dir = join(UPLOADS_ROOT, "products", slug, folder);
     mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -75,8 +76,7 @@ export class ProductsController {
   @UseInterceptors(FileInterceptor("file", { storage }))
   async upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException("Product image file is required");
-    const root = join(process.cwd(), "uploads");
-    const relativePath = relative(root, file.path).replace(/\\/g, "/");
+    const relativePath = relative(UPLOADS_ROOT, file.path).replace(/\\/g, "/");
     return { url: `${(process.env.PUBLIC_BASE_URL ?? "http://localhost:3001").replace(/\/+$/, "")}/uploads/${relativePath}` };
   }
 }

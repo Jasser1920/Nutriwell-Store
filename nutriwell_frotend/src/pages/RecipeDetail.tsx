@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Clock, Users, Printer, ChefHat, Flame, Award, Leaf, Heart, Lightbulb } from "lucide-react";
+import { Clock, Users, ChefHat, Award, Leaf, Lightbulb } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WaveDivider from "@/components/WaveDivider";
@@ -160,26 +160,21 @@ const RecipeDetail = () => {
                 <span className="text-xs font-bold uppercase tracking-widest text-secondary">{recipe.category}</span>
               </div>
 
-              {/* Title + print — larger title */}
-              <div className="flex items-start justify-between gap-4 mb-6">
+              {/* Title */}
+              <div className="mb-6">
                 <h1 className="font-heading text-3xl md:text-4xl font-bold text-foreground leading-tight">
                   {recipe.title}
                 </h1>
-                <button
-                  onClick={() => window.print()}
-                  className="flex-shrink-0 p-2.5 rounded-xl border border-border text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5 transition-all duration-200"
-                  aria-label="Imprimer la recette"
-                >
-                  <Printer size={20} />
-                </button>
               </div>
 
               {/* Quick info strip — pill background per item */}
               <div className="flex flex-wrap items-center gap-3 mb-8">
                 {[
                   { icon: Users, label: `${recipe.servings} pers.` },
-                  { icon: Clock, label: `Prépa : ${recipe.prepTime}` },
-                  { icon: ChefHat, label: `Total : ${recipe.totalTime}` },
+                  {
+                    icon: Clock,
+                    label: `Prépa : ${recipe.prepTime?.trim() ? recipe.prepTime.trim() : "—"}`,
+                  },
                 ].map((info) => (
                   <span
                     key={info.label}
@@ -240,15 +235,26 @@ const RecipeDetail = () => {
                 )}
               </div>
 
-              {/* Associated product — improved hover */}
+              {/* Produit lié (admin) ou lien catalogue */}
               <Link
-                to="/products"
+                to={recipe.relatedProduct ? `/products/${recipe.relatedProduct.slug}` : "/products"}
                 className="flex items-center gap-4 p-4 rounded-2xl bg-muted hover:bg-muted/70 hover:shadow-sm transition-all duration-200 mb-8 group"
               >
-                <img src={productThumb} alt="Produit Nutriwell" className="w-14 h-14 rounded-xl object-cover" width={56} height={56} loading="lazy" />
+                <img
+                  src={recipe.relatedProduct?.image?.trim() ? recipe.relatedProduct.image : productThumb}
+                  alt={recipe.relatedProduct?.name ?? "Produit Nutriwell"}
+                  className="w-14 h-14 rounded-xl object-cover"
+                  width={56}
+                  height={56}
+                  loading="lazy"
+                />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground font-medium">Découvrez nos produits</p>
-                  <p className="text-sm font-bold text-foreground group-hover:text-primary transition-all duration-200 truncate">Nutriwell - Gamme complète</p>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {recipe.relatedProduct ? "Produit utilisé dans cette recette" : "Découvrez nos produits"}
+                  </p>
+                  <p className="text-sm font-bold text-foreground group-hover:text-primary transition-all duration-200 truncate">
+                    {recipe.relatedProduct?.name ?? "Nutriwell - Gamme complète"}
+                  </p>
                 </div>
                 <span className="text-primary text-sm font-bold group-hover:translate-x-0.5 transition-transform duration-200">Voir →</span>
               </Link>

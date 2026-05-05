@@ -3,10 +3,10 @@ import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { json, urlencoded } from "express";
 import cookieParser from "cookie-parser";
-import { join } from "path";
 import { AppModule } from "./app.module";
 import { AuthService } from "./auth/auth.service";
 import { ensureDatabaseReady } from "./common/database-bootstrap";
+import { UPLOADS_ROOT } from "./common/uploads-path";
 
 const parseAllowedOrigins = () => {
   const raw = process.env.FRONTEND_ORIGIN ?? "http://localhost:5173,http://localhost:8080";
@@ -23,8 +23,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // ✅ Fichiers statiques EN PREMIER
-  app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads/" });
+  app.useStaticAssets(UPLOADS_ROOT, { prefix: "/uploads/" });
 
   const authService = app.get(AuthService);
   await authService.ensureAdmin();

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Star, Truck, ShieldCheck, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ScrollReveal from "@/components/ScrollReveal";
 import type { Product } from "@/data/products";
@@ -117,9 +118,11 @@ const ProductHero = ({ product }: Props) => {
 
               {/* CTAs */}
               <div className="flex flex-col gap-3 pt-1">
-                <Button variant="outline" className="w-full rounded-full border-primary text-primary hover:bg-primary/5 text-base py-5">
-                  Trouver en pharmacie
-                </Button>
+                <Link to="/store-locator" className="w-full">
+                  <Button variant="outline" className="w-full rounded-full border-primary text-primary hover:bg-primary/5 text-base py-5">
+                    Trouver en pharmacie
+                  </Button>
+                </Link>
               </div>
 
               {/* Trust Badges */}

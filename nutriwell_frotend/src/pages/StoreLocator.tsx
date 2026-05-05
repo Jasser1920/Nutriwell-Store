@@ -256,7 +256,7 @@ const StoreLocator = () => {
                 Vous ne trouvez pas de point de vente ?
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-2">
-                Les produits Nutriwell sont disponibles dans un réseau croissant de pharmacies partenaires en France. Si votre pharmacie habituelle ne référence pas encore nos produits, n'hésitez pas à leur en faire la demande.
+                Les produits Nutriwell sont disponibles dans un réseau croissant de pharmacies et parapharmacies partenaires en Tunisie. Si votre pharmacie habituelle ne référence pas encore nos produits, n'hésitez pas à leur en faire la demande.
               </p>
               <p className="text-muted-foreground leading-relaxed">
                 Vous pouvez également nous contacter directement pour connaître le point de vente le plus proche ou commander en ligne.

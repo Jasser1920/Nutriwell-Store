@@ -188,6 +188,7 @@ CREATE TABLE recipes (
   prep_time VARCHAR(64) NOT NULL,
   servings INT NOT NULL DEFAULT 1,
   image TEXT DEFAULT NULL,
+  related_product_slug VARCHAR(191) DEFAULT NULL,
   ingredients LONGTEXT NOT NULL,
   steps LONGTEXT NOT NULL,
   tips LONGTEXT NOT NULL,

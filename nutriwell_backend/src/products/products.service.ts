@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { MysqlService } from "../common/mysql.service";
+import { error } from "console";
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => str(x)).filter(Boolean) : []);
@@ -15,6 +16,7 @@ export class ProductsService {
   constructor(private readonly db: MysqlService) {}
 
   private normalizeNutritionTable(raw: unknown): NutritionTable | null {
+    console.log("condition", !raw || typeof raw !== "object");
     if (!raw || typeof raw !== "object") return null;
 
     const table = raw as { headers?: unknown; rows?: unknown };
@@ -36,13 +38,17 @@ export class ProductsService {
       rows: normalizedRows,
     };
   }
-
+   
   private parseNutritionTableJson(raw: unknown): NutritionTable | null {
     if (!raw || typeof raw !== "string") return null;
+    console.log("raw", raw);
     try {
-      return this.normalizeNutritionTable(JSON.parse(raw));
-    } catch {
-      return null;
+      var result = this.normalizeNutritionTable(JSON.parse(raw));
+      console.log("result", result);
+      return result;
+    } catch (error) {
+      console.log("error", error);
+      throw error;
     }
   }
 
@@ -140,9 +146,12 @@ export class ProductsService {
       isPublished: !!p.is_published,
       descriptions: full.description,
       benefits: full.benefits,
+      ingredients: full.ingredients,
+      importantNotice: full.importantNotice,
       flavors: full.flavors,
       formats: full.formats,
       nutrition: full.nutrition,
+      nutritionTable: full.nutritionTable,
       usageTips: full.usageTips,
       images: full.images,
       reviews: full.reviews,

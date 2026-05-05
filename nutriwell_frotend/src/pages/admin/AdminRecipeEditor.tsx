@@ -2,6 +2,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RecipeFormInput, fetchAdminRecipeById, saveAdminRecipe, uploadRecipeImage } from "@/lib/recipe-service";
+import { fetchAdminProducts } from "@/lib/admin-service";
 import { parseNutritionArray, stringifyNutritionArray } from "@/lib/nutrition-transformer";
 
 const emptyForm: RecipeFormInput = {
@@ -12,6 +13,7 @@ const emptyForm: RecipeFormInput = {
   prepTime: "",
   servings: 1,
   image: "",
+  relatedProductSlug: "",
   ingredients: [],
   steps: [],
   tips: [],
@@ -81,9 +83,22 @@ const AdminRecipeEditor = () => {
     enabled: isEdit,
   });
 
+  const { data: adminProducts = [] } = useQuery({
+    queryKey: ["admin-products-for-recipe-editor"],
+    queryFn: fetchAdminProducts,
+  });
+
+  const productOptions = useMemo(
+    () => [...adminProducts].sort((a, b) => a.name.localeCompare(b.name, "fr")),
+    [adminProducts],
+  );
+
   useEffect(() => {
     if (!data) return;
-    setForm(data);
+    setForm({
+      ...data,
+      relatedProductSlug: data.relatedProductSlug ?? "",
+    });
     setIngredientsText(toLines(data.ingredients));
     setStepsText(toLines(data.steps));
     setTipsText(toLines(data.tips));
@@ -337,6 +352,24 @@ const AdminRecipeEditor = () => {
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
                 required
               />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-foreground">Produit mis en avant sur la fiche recette</label>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Lie la bannière « Découvrez… » au détail du produit (page publique). Laissez vide pour renvoyer vers la liste des produits.
+              </p>
+              <select
+                value={form.relatedProductSlug}
+                onChange={(e) => setForm((prev) => ({ ...prev, relatedProductSlug: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
+              >
+                <option value="">Aucun — lien vers tous les produits</option>
+                {productOptions.map((p) => (
+                  <option key={p.id} value={p.slug}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-sm font-medium text-foreground">Image principale URL</label>

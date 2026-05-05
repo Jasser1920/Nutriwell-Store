@@ -4,6 +4,7 @@ import { diskStorage } from "multer";
 import { mkdirSync } from "fs";
 import { join, relative } from "path";
 import { AdminGuard } from "../auth/admin.guard";
+import { UPLOADS_ROOT } from "../common/uploads-path";
 import { ContentService } from "./content.service";
 
 const normalizeSegment = (value: unknown, fallback: string) =>
@@ -20,7 +21,7 @@ const storage = diskStorage({
     const pageKey = normalizeSegment(req.body?.pageKey, "page");
     const section = normalizeSegment(req.body?.section, "section");
     const field = normalizeSegment(req.body?.field, "image");
-    const dir = join(process.cwd(), "uploads", "content", pageKey, section, field);
+    const dir = join(UPLOADS_ROOT, "content", pageKey, section, field);
     mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -56,8 +57,7 @@ export class ContentController {
   @UseInterceptors(FileInterceptor("file", { storage }))
   async upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException("Content image file is required");
-    const root = join(process.cwd(), "uploads");
-    const relativePath = relative(root, file.path).replace(/\\/g, "/");
+    const relativePath = relative(UPLOADS_ROOT, file.path).replace(/\\/g, "/");
     return { url: `${(process.env.PUBLIC_BASE_URL ?? "http://localhost:3001").replace(/\/+$/, "")}/uploads/${relativePath}` };
   }
 }

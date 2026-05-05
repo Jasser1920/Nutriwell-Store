@@ -4,12 +4,13 @@ import { diskStorage } from "multer";
 import { mkdirSync } from "fs";
 import { join, relative } from "path";
 import { AdminGuard } from "../auth/admin.guard";
+import { UPLOADS_ROOT } from "../common/uploads-path";
 import { RecipesService } from "./recipes.service";
 
 const storage = diskStorage({
   destination: (req, file, cb) => {
     const slug = String((req.body?.slug ?? "draft-recipe")).toLowerCase().replace(/[^a-z0-9-]/g, "-");
-    const dir = join(process.cwd(), "uploads", "recipes", slug);
+    const dir = join(UPLOADS_ROOT, "recipes", slug);
     mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -74,8 +75,7 @@ export class RecipesController {
   @UseInterceptors(FileInterceptor("file", { storage }))
   async upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException("Recipe image file is required");
-    const root = join(process.cwd(), "uploads");
-    const relativePath = relative(root, file.path).replace(/\\/g, "/");
+    const relativePath = relative(UPLOADS_ROOT, file.path).replace(/\\/g, "/");
     return { url: `${(process.env.PUBLIC_BASE_URL ?? "http://localhost:3001").replace(/\/+$/, "")}/uploads/${relativePath}` };
   }
 }

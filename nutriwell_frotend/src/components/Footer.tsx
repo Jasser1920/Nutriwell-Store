@@ -1,7 +1,13 @@
+import { Link } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
 import NutriwellLogo from "./NutriwellLogo";
 
-const footerLinks = ["Nos Produits", "Qui Sommes-Nous", "Nos Recettes et Astuces", "Contact"];
+const footerLinks = [
+  { label: "Nos Produits", to: "/products" },
+  { label: "Qui Sommes-Nous", to: "/about" },
+  { label: "Nos Recettes et Astuces", to: "/recipes" },
+  { label: "Contact", to: "/contact" },
+];
 
 const Footer = () => {
   return (
@@ -39,13 +45,13 @@ const Footer = () => {
         <ScrollReveal delay={0.15}>
           <nav className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-12">
             {footerLinks.map((link) => (
-              <a
-                key={link}
-                href="#"
+              <Link
+                key={link.label}
+                to={link.to}
                 className="text-primary-foreground/60 hover:text-accent transition-all duration-200 font-medium"
               >
-                {link}
-              </a>
+                {link.label}
+              </Link>
             ))}
           </nav>
         </ScrollReveal>

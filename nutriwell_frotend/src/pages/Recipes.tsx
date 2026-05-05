@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Users, ChefHat, Sparkles, Heart, Award, Leaf } from "lucide-react";
+import { Clock, Users, Sparkles, Heart, Award, Leaf } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -59,6 +59,47 @@ interface PromoCard {
 
 
 type GridItem = RecipeCard | PromoCard;
+
+/** Une ligne desktop : 3 colonnes ; `null` = case vide (maintient l’alignement). */
+type GridRow = [GridItem | null, GridItem | null, GridItem | null];
+
+function buildAlternatingRecipePromoRows(recipes: RecipeCard[], promos: PromoCard[]): GridRow[] {
+  if (recipes.length === 0) return [];
+
+  if (promos.length === 0) {
+    const rows: GridRow[] = [];
+    for (let i = 0; i < recipes.length; i += 3) {
+      rows.push([recipes[i] ?? null, recipes[i + 1] ?? null, recipes[i + 2] ?? null]);
+    }
+    return rows;
+  }
+
+  const rows: GridRow[] = [];
+  let i = 0;
+  let promoCycle = 0;
+  let promoOnRight = true;
+
+  while (i < recipes.length) {
+    const row: GridRow = [null, null, null];
+
+    if (promoOnRight) {
+      row[0] = recipes[i++] ?? null;
+      if (i < recipes.length) row[1] = recipes[i++] ?? null;
+      row[2] = promos[promoCycle % promos.length]!;
+      promoCycle++;
+    } else {
+      row[0] = promos[promoCycle % promos.length]!;
+      promoCycle++;
+      row[1] = recipes[i++] ?? null;
+      if (i < recipes.length) row[2] = recipes[i++] ?? null;
+    }
+
+    rows.push(row);
+    promoOnRight = !promoOnRight;
+  }
+
+  return rows;
+}
 
 const colorMap = {
   primary: "bg-primary",
@@ -123,21 +164,12 @@ const Recipes = () => {
     { type: "promo", icon: Leaf, title: content.promos[2]?.title ?? "", desc: content.promos[2]?.desc ?? "", cta: content.promos[2]?.cta ?? "En savoir plus →", color: "accent" },
   ];
 
-  // Combine recipes and promos for display
   const filtered = recipes.filter((item) => {
     if (active === "Toutes") return true;
     return item.category === active;
   });
 
-  // Inject promos at regular intervals for visual balance
-  const gridItems: GridItem[] = [];
-  filtered.forEach((recipe, index) => {
-    gridItems.push(recipe);
-    // Insert promo after every 2 recipes
-    if ((index + 1) % 2 === 0 && promoCards.length > 0) {
-      gridItems.push(promoCards[Math.floor(Math.random() * promoCards.length)]);
-    }
-  });
+  const gridRows = buildAlternatingRecipePromoRows(filtered, promoCards);
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -225,56 +257,68 @@ const Recipes = () => {
               <p className="text-muted-foreground text-lg">Aucune recette trouvée pour cette catégorie.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {gridItems.map((item, i) =>
-                item.type === "recipe" ? (
-                  <ScrollReveal key={i} delay={i * 0.05}>
-                    <div className="organic-card overflow-hidden group">
-                      <div className="aspect-[4/3] overflow-hidden">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                          width={512}
-                          height={512}
-                        />
-                      </div>
-                      <div className="p-5">
-                        <span className="text-xs font-semibold text-primary uppercase tracking-wide">
-                          {item.category}
-                        </span>
-                        <h3 className="font-heading text-base font-bold text-foreground mt-1 mb-3">
-                          {item.title}
-                        </h3>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                          <span className="flex items-center gap-1"><Clock size={14} /> {item.time}</span>
-                          <span className="flex items-center gap-1"><Users size={14} /> {item.servings} pers.</span>
+            <div className="flex flex-col gap-6 lg:gap-8">
+              {gridRows.map((row, rowIndex) => (
+                <div key={`row-${rowIndex}`} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {row.map((item, colIndex) => {
+                    if (!item) {
+                      return <div key={`e-${rowIndex}-${colIndex}`} className="hidden lg:block min-h-[1px]" aria-hidden />;
+                    }
+
+                    const revealDelay = (rowIndex * 3 + colIndex) * 0.05;
+
+                    if (item.type === "recipe") {
+                      return (
+                        <ScrollReveal key={item.slug} delay={revealDelay}>
+                          <div className="organic-card overflow-hidden group">
+                            <div className="aspect-[4/3] overflow-hidden">
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                                width={512}
+                                height={512}
+                              />
+                            </div>
+                            <div className="p-5">
+                              <span className="text-xs font-semibold text-primary uppercase tracking-wide">
+                                {item.category}
+                              </span>
+                              <h3 className="font-heading text-base font-bold text-foreground mt-1 mb-3">
+                                {item.title}
+                              </h3>
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                                <span className="flex items-center gap-1">
+                                  <Clock size={14} /> {item.time}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Users size={14} /> {item.servings} pers.
+                                </span>
+                              </div>
+                              <Link to={`/recipes/${item.slug}`} className="text-secondary text-sm font-semibold hover:underline">
+                                Voir la recette →
+                              </Link>
+                            </div>
+                          </div>
+                        </ScrollReveal>
+                      );
+                    }
+
+                    return (
+                      <ScrollReveal key={`${rowIndex}-${colIndex}-${item.title}`} delay={revealDelay}>
+                        <div
+                          className={`${colorMap[item.color]} rounded-2xl p-8 flex flex-col justify-center h-full min-h-[280px]`}
+                        >
+                          <item.icon className="text-primary-foreground mb-4" size={32} />
+                          <h3 className="font-heading text-xl font-bold text-primary-foreground mb-3">{item.title}</h3>
+                          <p className="text-primary-foreground/90 text-sm leading-relaxed mb-5">{item.desc}</p>
                         </div>
-                        <Link to={`/recipes/${item.slug}`} className="text-secondary text-sm font-semibold hover:underline">
-                          Voir la recette →
-                        </Link>
-                      </div>
-                    </div>
-                  </ScrollReveal>
-                ) : (
-                  /* ── Promo Card ── */
-                  <ScrollReveal key={i} delay={i * 0.05}>
-                    <div className={`${colorMap[item.color]} rounded-2xl p-8 flex flex-col justify-center h-full min-h-[280px]`}>
-                      <item.icon className="text-primary-foreground mb-4" size={32} />
-                      <h3 className="font-heading text-xl font-bold text-primary-foreground mb-3">
-                        {item.title}
-                      </h3>
-                      <p className="text-primary-foreground/90 text-sm leading-relaxed mb-5">
-                        {item.desc}
-                      </p>
-                      <a href="#" className="text-primary-foreground text-sm font-semibold underline underline-offset-4">
-                        {item.cta}
-                      </a>
-                    </div>
-                  </ScrollReveal>
-                )
-              )}
+                      </ScrollReveal>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -44,8 +44,8 @@ const Contact = () => {
   const [address, setAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [city, setCity] = useState("");
-  const [country, setCountry] = useState("");
-  const [phonePrefix, setPhonePrefix] = useState("+33");
+  const [country, setCountry] = useState("Tunisie");
+  const [phonePrefix, setPhonePrefix] = useState("+216");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [captcha, setCaptcha] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -314,18 +314,18 @@ const Contact = () => {
                     {/* Address */}
                     <div>
                       <label className={labelClass}>Adresse</label>
-                      <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Numéro et nom de rue" className={inputClass} />
+                      <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="N° et nom de rue, ex. 12 Avenue Habib Bourguiba" className={inputClass} />
                     </div>
 
                     {/* Postal + City */}
                     <div className="grid grid-cols-[140px_1fr] gap-3">
                       <div>
                         <label className={labelClass}>Code postal</label>
-                        <input type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="75001" className={inputClass} />
+                        <input type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="1000" className={inputClass} />
                       </div>
                       <div>
                         <label className={labelClass}>Ville</label>
-                        <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Paris" className={inputClass} />
+                        <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Tunis" className={inputClass} />
                       </div>
                     </div>
 
@@ -345,7 +345,7 @@ const Contact = () => {
                         <select value={phonePrefix} onChange={(e) => setPhonePrefix(e.target.value)} className={selectClass}>
                           {phonePrefixes.map((p) => <option key={p} value={p}>{p}</option>)}
                         </select>
-                        <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="6 12 34 56 78" className={inputClass} />
+                        <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="12 345 678" className={inputClass} />
                       </div>
                     </div>
                   </div>

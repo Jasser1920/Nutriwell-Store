@@ -124,6 +124,8 @@ export const saveAdminProduct = async (input: AdminProductFormInput, productId?:
     benefits: input.benefits,
     flavors: input.flavors,
     formats: input.formats,
+    ingredients: input.ingredients,
+    importantNotice: input.importantNotice,
     nutrition: input.nutrition,
     nutritionTable: input.nutritionTable,
     usageTips: input.usageTips,
