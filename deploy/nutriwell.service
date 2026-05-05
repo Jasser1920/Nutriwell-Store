@@ -1,0 +1,15 @@
+[Unit]
+Description=Nutriwell Docker Compose service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/nutriwell   # EDIT: set to your project path
+ExecStart=/usr/bin/docker compose up --build -d
+ExecStop=/usr/bin/docker compose down
+RemainAfterExit=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
