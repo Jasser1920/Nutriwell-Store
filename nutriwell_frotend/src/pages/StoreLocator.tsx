@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { MapPin, Navigation, Search, Clock, Shield, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import WaveDivider from "@/components/WaveDivider";
@@ -16,33 +17,17 @@ import {
 } from "@/components/ui/select";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-interface Pharmacy {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  distance: string;
-  lat: number;
-  lng: number;
-  phone: string;
-}
-
-const allPharmacies: Pharmacy[] = [
-  { id: 1, name: "Pharmacie Centrale de Tunis", address: "1 Avenue Habib Bourguiba", city: "Tunis", distance: "0.3 km", lat: 36.8008, lng: 10.1800, phone: "+216 71 123 456" },
-  { id: 2, name: "Pharmacie El Menzah", address: "12 Rue de l'Indépendance", city: "El Menzah", distance: "1.2 km", lat: 36.8340, lng: 10.1560, phone: "+216 71 234 567" },
-  { id: 3, name: "Pharmacie La Marsa", address: "5 Avenue de la République", city: "La Marsa", distance: "2.5 km", lat: 36.8796, lng: 10.3242, phone: "+216 71 345 678" },
-  { id: 4, name: "Pharmacie Sfax Centre", address: "10 Rue de Sfax", city: "Sfax", distance: "3.1 km", lat: 34.7390, lng: 10.7600, phone: "+216 74 123 456" },
-  { id: 5, name: "Pharmacie Monastir", address: "7 Avenue Habib Bourguiba", city: "Monastir", distance: "4.0 km", lat: 35.7771, lng: 10.8266, phone: "+216 73 123 456" },
-  { id: 6, name: "Pharmacie Ariana", address: "3 Rue de l'Environnement", city: "Ariana", distance: "2.8 km", lat: 36.8663, lng: 10.1647, phone: "+216 70 123 456" },
-  { id: 7, name: "Pharmacie Bizerte", address: "2 Avenue Habib Thameur", city: "Bizerte", distance: "5.2 km", lat: 37.2744, lng: 9.8739, phone: "+216 72 123 456" },
-  { id: 8, name: "Pharmacie Sousse", address: "8 Rue de la Corniche", city: "Sousse", distance: "6.0 km", lat: 35.8256, lng: 10.6369, phone: "+216 73 234 567" },
-];
+import { fetchLocations } from "@/lib/location-service";
 
 const StoreLocator = () => {
   const [location, setLocation] = useState("");
   const [radius, setRadius] = useState("5");
   const [resultsCount, setResultsCount] = useState("10");
+
+  const { data: allPharmacies = [] } = useQuery({
+    queryKey: ["locations"],
+    queryFn: fetchLocations,
+  });
 
   const filteredPharmacies = useMemo(() => {
     let results = allPharmacies;
@@ -56,7 +41,7 @@ const StoreLocator = () => {
       );
     }
     return results.slice(0, parseInt(resultsCount));
-  }, [location, resultsCount]);
+  }, [allPharmacies, location, resultsCount]);
 
   // Default center: Tunis, Tunisia
   const mapCenter: [number, number] =

@@ -21,6 +21,7 @@ import AdminRecipes from "./pages/admin/AdminRecipes.tsx";
 import AdminRecipeEditor from "./pages/admin/AdminRecipeEditor.tsx";
 import AdminContactReports from "./pages/admin/AdminContactReports.tsx";
 import AdminContentEditor from "./pages/admin/AdminContentEditor.tsx";
+import AdminLocationStore from "./pages/admin/AdminLocationStore.tsx";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/admin/recipes/:id/edit" element={<AdminRecipeEditor />} />
             <Route path="/admin/contact-reports" element={<AdminContactReports />} />
             <Route path="/admin/content" element={<AdminContentEditor />} />
+            <Route path="/admin/location" element={<AdminLocationStore />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

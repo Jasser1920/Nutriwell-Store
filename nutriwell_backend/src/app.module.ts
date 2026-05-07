@@ -6,9 +6,10 @@ import { ProductsModule } from "./products/products.module";
 import { RecipesModule } from "./recipes/recipes.module";
 import { ContactModule } from "./contact/contact.module";
 import { ContentModule } from "./content/content.module";
+import { LocationsModule } from "./locations/locations.module";
 
 @Module({
-  imports: [MysqlModule, AuthModule, ProductsModule, RecipesModule, ContactModule, ContentModule],
+  imports: [MysqlModule, AuthModule, ProductsModule, RecipesModule, ContactModule, ContentModule, LocationsModule],
   controllers: [AppController],
 })
 export class AppModule {}
