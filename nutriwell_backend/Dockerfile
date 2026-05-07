@@ -21,6 +21,9 @@ RUN npm ci --omit=dev
 # Copy built app
 COPY --from=builder /app/dist ./dist
 
+# Copy the MySQL schema file to the expected location in the image
+COPY mysql-schema.sql /app/mysql-schema.sql
+
 ENV NODE_ENV=production
 EXPOSE 3001
 CMD ["node", "dist/main.js"]

@@ -39,3 +39,4 @@ desktop.ini
 tmp/
 temp/
 *.tmp
+docker-compose.prod.yml
