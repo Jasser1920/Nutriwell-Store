@@ -8,13 +8,10 @@ interface FilterBarProps {
   setActiveTexture: (v: string) => void;
   activeGout: string;
   setActiveGout: (v: string) => void;
-  activeRegime: string;
-  setActiveRegime: (v: string) => void;
 }
 
-const textures = ["Boisson", "Crème", "Poudre", "Gelée", "Purée", "Velouté", "Céréales"];
+const textures = ["Poudre"];
 const gouts = ["Fruité", "Lacté", "Chocolat", "Vanille", "Café", "Neutre"];
-const regimes = ["Sans sucre", "Hyperprotéiné", "Rénal", "Standard"];
 
 const DropdownPill = ({
   label,
@@ -83,8 +80,6 @@ const FilterBar = ({
   setActiveTexture,
   activeGout,
   setActiveGout,
-  activeRegime,
-  setActiveRegime,
 }: FilterBarProps) => (
   <div className="sticky top-[60px] z-40 bg-background border-b-2 border-accent/30 py-4 flex flex-col justify-center items-center text-center">
     <div className="container mx-auto px-6">
@@ -94,10 +89,9 @@ const FilterBar = ({
             setActiveFilter("all");
             setActiveTexture("");
             setActiveGout("");
-            setActiveRegime("");
           }}
           className={`px-8 py-3 rounded-full text-base font-bold transition-all duration-200 ${
-            activeFilter === "all" && !activeTexture && !activeGout && !activeRegime
+            activeFilter === "all" && !activeTexture && !activeGout
               ? "bg-secondary text-secondary-foreground shadow-md"
               : "bg-secondary/10 text-secondary hover:bg-secondary/20"
           }`}
@@ -106,7 +100,6 @@ const FilterBar = ({
         </button>
         <DropdownPill label="Textures" options={textures} value={activeTexture} onChange={setActiveTexture} />
         <DropdownPill label="Goûts" options={gouts} value={activeGout} onChange={setActiveGout} />
-        <DropdownPill label="Régimes spécifiques" options={regimes} value={activeRegime} onChange={setActiveRegime} />
       </div>
     </div>
   </div>
