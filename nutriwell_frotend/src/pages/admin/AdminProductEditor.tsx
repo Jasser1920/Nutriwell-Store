@@ -1,7 +1,13 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AdminProductFormInput, fetchAdminProductById, saveAdminProduct, uploadProductImage } from "@/lib/admin-service";
+import {
+  AdminProductFormInput,
+  fetchAdminFilters,
+  fetchAdminProductById,
+  saveAdminProduct,
+  uploadProductImage,
+} from "@/lib/admin-service";
 
 const emptyForm: AdminProductFormInput = {
   slug: "",
@@ -9,7 +15,9 @@ const emptyForm: AdminProductFormInput = {
   category: "",
   shortDescription: "",
   texture: "",
+  textureOptionId: "",
   gout: "",
+  goutOptionId: "",
   regime: "",
 
   descriptions: [],
@@ -48,8 +56,6 @@ const resizeNutritionTable = (table: string[][], rows: number, cols: number) => 
 };
 
 const CATEGORY_OPTIONS = ["Boisson nutritionnelle", "Crème nutritionnelle", "Poudre nutritionnelle"];
-const TEXTURE_OPTIONS = ["Boisson", "Crème", "Poudre", "Gelée", "Purée", "Velouté", "Céréales"];
-const GOUT_OPTIONS = ["Vanille", "Chocolat", "Café", "Fruité", "Lacté", "Neutre", "Caramel"];
 const REGIME_OPTIONS = ["Standard", "Sans sucre", "Hyperprotéiné", "Rénal"];
 const BADGE_OPTIONS = ["", "NOUVEAU", "SANS SUCRE"];
 const BADGE_COLOR_OPTIONS = ["", "bg-destructive", "bg-muted-foreground"];
@@ -84,6 +90,26 @@ const AdminProductEditor = () => {
     queryFn: () => fetchAdminProductById(id as string),
     enabled: isEdit,
   });
+
+  const { data: filterCategories = [] } = useQuery({
+    queryKey: ["admin-filters"],
+    queryFn: fetchAdminFilters,
+  });
+
+  const textureOptions = useMemo(() => filterCategories.find((category) => category.keyName === "texture")?.options ?? [], [filterCategories]);
+  const goutOptions = useMemo(() => filterCategories.find((category) => category.keyName === "gout")?.options ?? [], [filterCategories]);
+
+  const textureSelectValue = useMemo(() => {
+    if (form.textureOptionId) return form.textureOptionId;
+    const match = textureOptions.find((option) => option.label === form.texture || option.slug === form.texture);
+    return match?.id ?? "";
+  }, [form.texture, form.textureOptionId, textureOptions]);
+
+  const goutSelectValue = useMemo(() => {
+    if (form.goutOptionId) return form.goutOptionId;
+    const match = goutOptions.find((option) => option.label === form.gout || option.slug === form.gout);
+    return match?.id ?? "";
+  }, [form.gout, form.goutOptionId, goutOptions]);
 
   useEffect(() => {
     if (!data) return;
@@ -235,12 +261,12 @@ const AdminProductEditor = () => {
       return;
     }
 
-    if (!TEXTURE_OPTIONS.includes(form.texture)) {
+    if (!textureSelectValue) {
       setSaveError("Veuillez choisir une texture depuis la liste.");
       return;
     }
 
-    if (!GOUT_OPTIONS.includes(form.gout)) {
+    if (!goutSelectValue) {
       setSaveError("Veuillez choisir un goût depuis la liste.");
       return;
     }
@@ -394,38 +420,52 @@ const AdminProductEditor = () => {
             <div>
               <label className="text-sm font-medium text-foreground">Texture</label>
               <select
-                value={form.texture}
-                onChange={(e) => setForm((prev) => ({ ...prev, texture: e.target.value }))}
+                value={textureSelectValue}
+                onChange={(e) => {
+                  const selected = textureOptions.find((option) => option.id === e.target.value);
+                  setForm((prev) => ({
+                    ...prev,
+                    textureOptionId: e.target.value,
+                    texture: selected?.label ?? prev.texture,
+                  }));
+                }}
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
                 required
               >
                 <option value="">Sélectionner une texture</option>
-                {TEXTURE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                {textureOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
                   </option>
                 ))}
-                {form.texture && !TEXTURE_OPTIONS.includes(form.texture) && (
-                  <option value={form.texture}>{form.texture}</option>
+                {form.texture && !textureOptions.some((option) => option.label === form.texture || option.slug === form.texture) && (
+                  <option value={textureSelectValue}>{form.texture}</option>
                 )}
               </select>
             </div>
             <div>
               <label className="text-sm font-medium text-foreground">Goût</label>
               <select
-                value={form.gout}
-                onChange={(e) => setForm((prev) => ({ ...prev, gout: e.target.value }))}
+                value={goutSelectValue}
+                onChange={(e) => {
+                  const selected = goutOptions.find((option) => option.id === e.target.value);
+                  setForm((prev) => ({
+                    ...prev,
+                    goutOptionId: e.target.value,
+                    gout: selected?.label ?? prev.gout,
+                  }));
+                }}
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
                 required
               >
                 <option value="">Sélectionner un goût</option>
-                {GOUT_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                {goutOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
                   </option>
                 ))}
-                {form.gout && !GOUT_OPTIONS.includes(form.gout) && (
-                  <option value={form.gout}>{form.gout}</option>
+                {form.gout && !goutOptions.some((option) => option.label === form.gout || option.slug === form.gout) && (
+                  <option value={goutSelectValue}>{form.gout}</option>
                 )}
               </select>
             </div>

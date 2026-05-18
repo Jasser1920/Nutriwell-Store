@@ -70,6 +70,12 @@ const AdminProducts = () => {
               Contenu pages
             </Link>
             <Link
+              to="/admin/filters"
+              className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+            >
+              Filtres
+            </Link>
+            <Link
               to="/admin/location"
               className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
             >

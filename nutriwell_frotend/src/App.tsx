@@ -17,6 +17,7 @@ import Contact from "./pages/Contact.tsx";
 import AdminLogin from "./pages/admin/AdminLogin.tsx";
 import AdminProducts from "./pages/admin/AdminProducts.tsx";
 import AdminProductEditor from "./pages/admin/AdminProductEditor.tsx";
+import AdminFilters from "./pages/admin/AdminFilters.tsx";
 import AdminRecipes from "./pages/admin/AdminRecipes.tsx";
 import AdminRecipeEditor from "./pages/admin/AdminRecipeEditor.tsx";
 import AdminContactReports from "./pages/admin/AdminContactReports.tsx";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/admin/products" element={<AdminProducts />} />
             <Route path="/admin/products/new" element={<AdminProductEditor />} />
             <Route path="/admin/products/:id/edit" element={<AdminProductEditor />} />
+            <Route path="/admin/filters" element={<AdminFilters />} />
             <Route path="/admin/recipes" element={<AdminRecipes />} />
             <Route path="/admin/recipes/new" element={<AdminRecipeEditor />} />
             <Route path="/admin/recipes/:id/edit" element={<AdminRecipeEditor />} />

@@ -1,5 +1,7 @@
 import { ChevronDown } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPublicFilters } from "@/lib/filters-service";
 
 interface FilterBarProps {
   activeFilter: string;
@@ -10,8 +12,7 @@ interface FilterBarProps {
   setActiveGout: (v: string) => void;
 }
 
-const textures = ["Poudre"];
-const gouts = ["Fruité", "Lacté", "Chocolat", "Vanille", "Café", "Neutre"];
+type FilterOption = { id: string; label: string; slug: string };
 
 const DropdownPill = ({
   label,
@@ -20,7 +21,7 @@ const DropdownPill = ({
   onChange,
 }: {
   label: string;
-  options: string[];
+  options: FilterOption[];
   value: string;
   onChange: (v: string) => void;
 }) => {
@@ -45,7 +46,7 @@ const DropdownPill = ({
             : "border-primary/30 bg-background text-foreground hover:border-primary"
         }`}
       >
-        {value || label}
+        {options.find((opt) => opt.slug === value)?.label ?? label}
         <ChevronDown size={18} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
@@ -58,13 +59,16 @@ const DropdownPill = ({
           </button>
           {options.map((opt) => (
             <button
-              key={opt}
-              onClick={() => { onChange(opt); setOpen(false); }}
+              key={opt.id}
+              onClick={() => {
+                onChange(opt.slug);
+                setOpen(false);
+              }}
               className={`w-full text-left px-5 py-3 text-base transition-colors ${
-                value === opt ? "text-primary font-semibold bg-primary/5" : "text-foreground hover:bg-muted"
+                value === opt.slug ? "text-primary font-semibold bg-primary/5" : "text-foreground hover:bg-muted"
               }`}
             >
-              {opt}
+              {opt.label}
             </button>
           ))}
         </div>
@@ -80,29 +84,52 @@ const FilterBar = ({
   setActiveTexture,
   activeGout,
   setActiveGout,
-}: FilterBarProps) => (
-  <div className="sticky top-[60px] z-40 bg-background border-b-2 border-accent/30 py-4 flex flex-col justify-center items-center text-center">
-    <div className="container mx-auto px-6">
-      <div className="flex flex-wrap items-center gap-3 justify-center">
-        <button
-          onClick={() => {
-            setActiveFilter("all");
-            setActiveTexture("");
-            setActiveGout("");
-          }}
-          className={`px-8 py-3 rounded-full text-base font-bold transition-all duration-200 ${
-            activeFilter === "all" && !activeTexture && !activeGout
-              ? "bg-secondary text-secondary-foreground shadow-md"
-              : "bg-secondary/10 text-secondary hover:bg-secondary/20"
-          }`}
-        >
-          Tous les produits
-        </button>
-        <DropdownPill label="Textures" options={textures} value={activeTexture} onChange={setActiveTexture} />
-        <DropdownPill label="Goûts" options={gouts} value={activeGout} onChange={setActiveGout} />
+}: FilterBarProps) => {
+  const { data: filters = {}, isLoading } = useQuery({
+    queryKey: ["public-filters"],
+    queryFn: fetchPublicFilters,
+  });
+
+  const textures = filters.texture?.options ?? [];
+  const gouts = filters.gout?.options ?? [];
+
+  const hasActiveFilters = useMemo(
+    () => activeFilter === "all" && !activeTexture && !activeGout,
+    [activeFilter, activeTexture, activeGout],
+  );
+
+  return (
+    <div className="sticky top-[60px] z-40 bg-background border-b-2 border-accent/30 py-4 flex flex-col justify-center items-center text-center">
+      <div className="container mx-auto px-6">
+        <div className="flex flex-wrap items-center gap-3 justify-center">
+          <button
+            onClick={() => {
+              setActiveFilter("all");
+              setActiveTexture("");
+              setActiveGout("");
+            }}
+            className={`px-8 py-3 rounded-full text-base font-bold transition-all duration-200 ${
+              hasActiveFilters ? "bg-secondary text-secondary-foreground shadow-md" : "bg-secondary/10 text-secondary hover:bg-secondary/20"
+            }`}
+          >
+            Tous les produits
+          </button>
+          <DropdownPill
+            label={isLoading ? "Textures..." : filters.texture?.label ?? "Textures"}
+            options={textures}
+            value={activeTexture}
+            onChange={setActiveTexture}
+          />
+          <DropdownPill
+            label={isLoading ? "Goûts..." : filters.gout?.label ?? "Goûts"}
+            options={gouts}
+            value={activeGout}
+            onChange={setActiveGout}
+          />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default FilterBar;

@@ -1,13 +1,15 @@
 # Dependencies
 node_modules/
-
+letsencrypt/
+nginx/
+deploy
 # Build outputs
 **/dist/
 build/
 coverage/
 .vite/
 .cache/
-
+deploy
 # Logs
 *.log
 npm-debug.log*
@@ -39,4 +41,3 @@ desktop.ini
 tmp/
 temp/
 *.tmp
-docker-compose.prod.yml

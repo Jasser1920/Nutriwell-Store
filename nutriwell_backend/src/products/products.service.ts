@@ -5,6 +5,7 @@ import { error } from "console";
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => str(x)).filter(Boolean) : []);
+const bool = (v: unknown) => v === true || v === 1 || v === "1" || v === "true";
 
 type NutritionTable = {
   headers: string[];
@@ -14,6 +15,112 @@ type NutritionTable = {
 @Injectable()
 export class ProductsService {
   constructor(private readonly db: MysqlService) {}
+
+  private async ensureFilterColumns() {
+    const [textureRows] = await this.db.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS c
+       FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'products' AND column_name = 'texture_filter_option_id'`,
+    );
+    if (Number((textureRows[0] as any)?.c ?? 0) === 0) {
+      await this.db.execute("ALTER TABLE products ADD COLUMN texture_filter_option_id BIGINT UNSIGNED DEFAULT NULL");
+    }
+
+    const [goutRows] = await this.db.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS c
+       FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'products' AND column_name = 'gout_filter_option_id'`,
+    );
+    if (Number((goutRows[0] as any)?.c ?? 0) === 0) {
+      await this.db.execute("ALTER TABLE products ADD COLUMN gout_filter_option_id BIGINT UNSIGNED DEFAULT NULL");
+    }
+  }
+
+  private async ensureFilterTables() {
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS filter_categories (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        key_name VARCHAR(191) NOT NULL,
+        label VARCHAR(191) NOT NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_filter_categories_key (key_name)
+      ) ENGINE=InnoDB
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS filter_options (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        category_id BIGINT UNSIGNED NOT NULL,
+        label VARCHAR(191) NOT NULL,
+        slug VARCHAR(191) NOT NULL,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        sort_order INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_filter_options_slug (slug),
+        KEY idx_filter_options_cat (category_id, sort_order),
+        CONSTRAINT fk_filter_options_category FOREIGN KEY (category_id) REFERENCES filter_categories (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB
+    `);
+  }
+
+  private async getFilterOptionById(id: string) {
+    await this.ensureFilterTables();
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `SELECT fo.id, fo.category_id, fo.label, fo.slug, fo.is_active, fc.key_name AS category_key
+       FROM filter_options fo
+       JOIN filter_categories fc ON fc.id = fo.category_id
+       WHERE fo.id = ? LIMIT 1`,
+      [id],
+    );
+    return (rows as any[])[0] ?? null;
+  }
+
+  private async getFilterOptionBySlug(slug: string, categoryKey?: string) {
+    await this.ensureFilterTables();
+    const params: any[] = [slug];
+    let where = "fo.slug = ?";
+    if (categoryKey) {
+      where += " AND fc.key_name = ?";
+      params.push(categoryKey);
+    }
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `SELECT fo.id, fo.category_id, fo.label, fo.slug, fo.is_active, fc.key_name AS category_key
+       FROM filter_options fo
+       JOIN filter_categories fc ON fc.id = fo.category_id
+       WHERE ${where} LIMIT 1`,
+      params,
+    );
+    return (rows as any[])[0] ?? null;
+  }
+
+  private async resolveFilterSelection(input: { optionId?: unknown; value?: unknown; categoryKey: "texture" | "gout" }) {
+    const optionId = str(input.optionId);
+    if (optionId) {
+      const option = await this.getFilterOptionById(optionId);
+      if (option && option.is_active) return option;
+    }
+
+    const rawValue = str(input.value);
+    if (!rawValue) return null;
+
+    const bySlug = await this.getFilterOptionBySlug(rawValue, input.categoryKey);
+    if (bySlug && bySlug.is_active) return bySlug;
+
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `SELECT fo.id, fo.category_id, fo.label, fo.slug, fo.is_active, fc.key_name AS category_key
+       FROM filter_options fo
+       JOIN filter_categories fc ON fc.id = fo.category_id
+       WHERE fc.key_name = ? AND (fo.label = ? OR fo.slug = ?) LIMIT 1`,
+      [input.categoryKey, rawValue, rawValue],
+    );
+    const option = (rows as any[])[0] ?? null;
+    return option && option.is_active ? option : null;
+  }
 
   private normalizeNutritionTable(raw: unknown): NutritionTable | null {
     console.log("condition", !raw || typeof raw !== "object");
@@ -65,17 +172,67 @@ export class ProductsService {
     await this.db.execute("ALTER TABLE products ADD COLUMN nutrition_table_json LONGTEXT NULL");
   }
 
+  private async ensureProductFilterRelations() {
+    await this.ensureFilterTables();
+    await this.ensureFilterColumns();
+    await this.syncExistingFilterAssignments();
+  }
+
+  private async syncExistingFilterAssignments() {
+    const [rows] = await this.db.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS c
+       FROM products
+       WHERE texture_filter_option_id IS NULL OR gout_filter_option_id IS NULL`,
+    );
+    if (Number((rows[0] as any)?.c ?? 0) === 0) return;
+
+    await this.db.execute(
+      `UPDATE products p
+       JOIN filter_options t ON LOWER(TRIM(t.label)) = LOWER(TRIM(p.texture))
+       JOIN filter_categories tc ON tc.id = t.category_id AND tc.key_name = 'texture'
+       SET p.texture_filter_option_id = t.id,
+           p.texture = t.label
+       WHERE p.texture_filter_option_id IS NULL`,
+    );
+
+    await this.db.execute(
+      `UPDATE products p
+       JOIN filter_options g ON LOWER(TRIM(g.label)) = LOWER(TRIM(p.gout))
+       JOIN filter_categories gc ON gc.id = g.category_id AND gc.key_name = 'gout'
+       SET p.gout_filter_option_id = g.id,
+           p.gout = g.label
+       WHERE p.gout_filter_option_id IS NULL`,
+    );
+  }
+
   async listPublic(query: Record<string, unknown>) {
+    await this.ensureProductFilterRelations();
+
     const where: string[] = ["is_published = 1"];
     const params: any[] = [];
-    if (str(query.texture)) { where.push("texture = ?"); params.push(str(query.texture)); }
-    if (str(query.gout)) { where.push("gout = ?"); params.push(str(query.gout)); }
+    const texture = await this.getFilterOptionBySlug(str(query.texture), "texture");
+    if (texture) {
+      where.push("texture_filter_option_id = ?");
+      params.push(texture.id);
+    } else if (str(query.texture)) {
+      where.push("texture = ?");
+      params.push(str(query.texture));
+    }
+
+    const gout = await this.getFilterOptionBySlug(str(query.gout), "gout");
+    if (gout) {
+      where.push("gout_filter_option_id = ?");
+      params.push(gout.id);
+    } else if (str(query.gout)) {
+      where.push("gout = ?");
+      params.push(str(query.gout));
+    }
     if (str(query.regime)) { where.push("regime = ?"); params.push(str(query.regime)); }
     if (str(query.excludeSlug)) { where.push("slug <> ?"); params.push(str(query.excludeSlug)); }
 
     const limit = Number(query.limit ?? 24);
     const [rows] = await this.db.query<RowDataPacket[]>(
-      `SELECT id, slug, name, image, texture, gout, regime, badge, badge_color FROM products WHERE ${where.join(" AND ")} ORDER BY name ASC LIMIT ${Number.isFinite(limit) ? Math.min(Math.max(limit,1),40) : 24}`,
+      `SELECT id, slug, name, image, texture, gout, regime, badge, badge_color, texture_filter_option_id, gout_filter_option_id FROM products WHERE ${where.join(" AND ")} ORDER BY name ASC LIMIT ${Number.isFinite(limit) ? Math.min(Math.max(limit,1),40) : 24}`,
       params,
     );
 
@@ -98,6 +255,8 @@ export class ProductsService {
         texture: r.texture,
         gout: r.gout,
         regime: r.regime,
+        textureOptionId: r.texture_filter_option_id ? String(r.texture_filter_option_id) : "",
+        goutOptionId: r.gout_filter_option_id ? String(r.gout_filter_option_id) : "",
         badge: r.badge ?? undefined,
         badgeColor: r.badge_color ?? undefined,
         ...(asArray ? { flavors: Array.from({ length: c }, (_, i) => `saveur-${i + 1}`) } : { flavors: label, flavorsLabel: label }),
@@ -107,9 +266,10 @@ export class ProductsService {
 
   async getPublicBySlug(slug: string) {
     await this.ensureNutritionTableColumn();
+    await this.ensureProductFilterRelations();
 
     const [rows] = await this.db.query<RowDataPacket[]>(
-      "SELECT id, slug, name, category, short_description, texture, gout, regime, badge, badge_color, image, rating, review_count, nutrition_table_json FROM products WHERE slug = ? AND is_published = 1 LIMIT 1",
+      "SELECT id, slug, name, category, short_description, texture, gout, regime, badge, badge_color, image, rating, review_count, nutrition_table_json, texture_filter_option_id, gout_filter_option_id FROM products WHERE slug = ? AND is_published = 1 LIMIT 1",
       [slug],
     );
     const p: any = rows[0];
@@ -118,12 +278,20 @@ export class ProductsService {
   }
 
   async listAdmin() {
-    const [rows] = await this.db.query<RowDataPacket[]>("SELECT id, slug, name, category, texture, gout, regime, is_published, updated_at FROM products ORDER BY updated_at DESC");
-    return (rows as any[]).map((r) => ({ ...r, id: String(r.id), is_published: !!r.is_published }));
+    await this.ensureProductFilterRelations();
+    const [rows] = await this.db.query<RowDataPacket[]>("SELECT id, slug, name, category, texture, gout, regime, texture_filter_option_id, gout_filter_option_id, is_published, updated_at FROM products ORDER BY updated_at DESC");
+    return (rows as any[]).map((r) => ({
+      ...r,
+      id: String(r.id),
+      is_published: !!r.is_published,
+      textureOptionId: r.texture_filter_option_id ? String(r.texture_filter_option_id) : "",
+      goutOptionId: r.gout_filter_option_id ? String(r.gout_filter_option_id) : "",
+    }));
   }
 
   async getAdminById(id: string) {
     await this.ensureNutritionTableColumn();
+    await this.ensureProductFilterRelations();
    //changeshere
     const [rows] = await this.db.query<RowDataPacket[]>("SELECT * FROM products WHERE id = ? LIMIT 1", [id]);
     const p: any = rows[0];
@@ -135,7 +303,9 @@ export class ProductsService {
       category: full.category,
       shortDescription: full.shortDescription,
       texture: full.texture,
+      textureOptionId: p.texture_filter_option_id ? String(p.texture_filter_option_id) : "",
       gout: full.gout,
+      goutOptionId: p.gout_filter_option_id ? String(p.gout_filter_option_id) : "",
       regime: full.regime,
       // price and pricePerUnit removed
       badge: full.badge ?? "",
@@ -160,16 +330,21 @@ export class ProductsService {
 
   async save(body: Record<string, unknown>, id?: string) {
     await this.ensureNutritionTableColumn();
+    await this.ensureProductFilterRelations();
 
     const nutritionTable = this.normalizeNutritionTable(body.nutritionTable);
+    const textureOption = await this.resolveFilterSelection({ optionId: body.textureOptionId ?? body.texture_option_id, value: body.texture, categoryKey: "texture" });
+    const goutOption = await this.resolveFilterSelection({ optionId: body.goutOptionId ?? body.gout_option_id, value: body.gout, categoryKey: "gout" });
 
     const payload = {
       slug: str(body.slug),
       name: str(body.name),
       category: str(body.category),
       short_description: str(body.shortDescription),
-      texture: str(body.texture),
-      gout: str(body.gout),
+      texture: textureOption?.label ?? str(body.texture),
+      texture_filter_option_id: textureOption ? Number(textureOption.id) : null,
+      gout: goutOption?.label ?? str(body.gout),
+      gout_filter_option_id: goutOption ? Number(goutOption.id) : null,
       regime: str(body.regime),
       // price and price_per_unit removed
       badge: str(body.badge) || null,
@@ -184,14 +359,14 @@ export class ProductsService {
     let productId = id;
     if (id) {
       const [res] = await this.db.execute<ResultSetHeader>(
-        "UPDATE products SET slug=?,name=?,category=?,short_description=?,texture=?,gout=?,regime=?,badge=?,badge_color=?,image=?,rating=?,review_count=?,is_published=?,nutrition_table_json=? WHERE id=?",
-        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.gout,payload.regime,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json,id],
+        "UPDATE products SET slug=?,name=?,category=?,short_description=?,texture=?,texture_filter_option_id=?,gout=?,gout_filter_option_id=?,regime=?,badge=?,badge_color=?,image=?,rating=?,review_count=?,is_published=?,nutrition_table_json=? WHERE id=?",
+        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.texture_filter_option_id,payload.gout,payload.gout_filter_option_id,payload.regime,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json,id],
       );
       if (!res.affectedRows) throw new NotFoundException("Product not found");
     } else {
       const [res] = await this.db.execute<ResultSetHeader>(
-        "INSERT INTO products (slug,name,category,short_description,texture,gout,regime,badge,badge_color,image,rating,review_count,is_published,nutrition_table_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.gout,payload.regime,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json],
+        "INSERT INTO products (slug,name,category,short_description,texture,texture_filter_option_id,gout,gout_filter_option_id,regime,badge,badge_color,image,rating,review_count,is_published,nutrition_table_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.texture_filter_option_id,payload.gout,payload.gout_filter_option_id,payload.regime,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json],
       );
       productId = String(res.insertId);
     }
@@ -332,6 +507,8 @@ export class ProductsService {
       reviews: (r[0] as any[]).map((x) => ({ name: x.reviewer_name, rating: x.rating, text: x.review_text, date: x.review_date ? new Date(x.review_date).toISOString().slice(0, 10) : "" })),
       texture: p.texture,
       gout: p.gout,
+      textureOptionId: p.texture_filter_option_id ? String(p.texture_filter_option_id) : "",
+      goutOptionId: p.gout_filter_option_id ? String(p.gout_filter_option_id) : "",
       regime: p.regime,
     };
   }

@@ -6,10 +6,40 @@ export interface AdminProductItem {
   name: string;
   category: string;
   texture: string;
+  textureOptionId?: string;
   gout: string;
+  goutOptionId?: string;
   regime: string;
   is_published: boolean;
   updated_at: string;
+}
+
+export interface FilterCategoryOption {
+  id: string;
+  label: string;
+  slug: string;
+}
+
+export interface FilterCategoryGroup {
+  label: string;
+  options: FilterCategoryOption[];
+}
+
+export interface AdminFilterOption {
+  id: string;
+  categoryId: string;
+  label: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface AdminFilterCategory {
+  id: string;
+  keyName: string;
+  label: string;
+  sortOrder: number;
+  options: AdminFilterOption[];
 }
 
 export interface NutritionInput {
@@ -41,7 +71,9 @@ export interface AdminProductFormInput {
   category: string;
   shortDescription: string;
   texture: string;
+  textureOptionId?: string;
   gout: string;
+  goutOptionId?: string;
   regime: string;
   badge: string;
   badgeColor: string;
@@ -90,6 +122,41 @@ export const fetchAdminProducts = async (): Promise<AdminProductItem[]> => {
   return response.products ?? [];
 };
 
+export const fetchAdminFilters = async (): Promise<AdminFilterCategory[]> => {
+  const response = await apiRequest<{ categories: AdminFilterCategory[] }>("admin/filters", { method: "GET" });
+  return response.categories ?? [];
+};
+
+export const createFilterCategory = async (body: { keyName?: string; label: string; sortOrder?: number }) =>
+  apiRequest<{ id: string }>("admin/filter-categories", { method: "POST", body });
+
+export const updateFilterCategory = async (id: string, body: { keyName?: string; label: string; sortOrder?: number }) =>
+  apiRequest<{ id: string }>(`admin/filter-categories/${id}`, { method: "PUT", body });
+
+export const deleteFilterCategory = async (id: string) =>
+  apiRequest<{ success: boolean }>(`admin/filter-categories/${id}`, { method: "DELETE" });
+
+export const createFilterOption = async (body: {
+  categoryId?: string;
+  categoryKey?: string;
+  label: string;
+  slug?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}) => apiRequest<{ id: string }>("admin/filter-options", { method: "POST", body });
+
+export const updateFilterOption = async (id: string, body: {
+  categoryId?: string;
+  categoryKey?: string;
+  label: string;
+  slug?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}) => apiRequest<{ id: string }>(`admin/filter-options/${id}`, { method: "PUT", body });
+
+export const deleteFilterOption = async (id: string) =>
+  apiRequest<{ success: boolean }>(`admin/filter-options/${id}`, { method: "DELETE" });
+
 export const updateProductPublishStatus = async (productId: string, nextStatus: boolean) => {
   await apiRequest<{ success: boolean }>(`admin/products/${productId}/publish`, {
     method: "PATCH",
@@ -111,7 +178,9 @@ export const saveAdminProduct = async (input: AdminProductFormInput, productId?:
     category: clean(input.category),
     shortDescription: clean(input.shortDescription),
     texture: clean(input.texture),
+    textureOptionId: input.textureOptionId ?? "",
     gout: clean(input.gout),
+    goutOptionId: input.goutOptionId ?? "",
     regime: clean(input.regime),
     // price and pricePerUnit removed
     badge: clean(input.badge),

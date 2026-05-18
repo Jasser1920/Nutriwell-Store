@@ -221,3 +221,60 @@ CREATE TABLE contact_reports (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
+
+-- Tables for dynamic product filters
+CREATE TABLE filter_categories (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  key_name VARCHAR(191) NOT NULL,
+  label VARCHAR(191) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_filter_categories_key (key_name)
+) ENGINE=InnoDB;
+
+CREATE TABLE filter_options (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  category_id BIGINT UNSIGNED NOT NULL,
+  label VARCHAR(191) NOT NULL,
+  slug VARCHAR(191) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY idx_filter_options_cat (category_id, sort_order),
+  CONSTRAINT fk_filter_options_category FOREIGN KEY (category_id) REFERENCES filter_categories (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Seed basic categories and options (textures and gouts)
+INSERT IGNORE INTO filter_categories (key_name, label, sort_order) VALUES
+  ('texture', 'Texture', 10),
+  ('gout', 'Goût', 20);
+
+-- Textures
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Boisson', 'boisson', 1, 10 FROM filter_categories fc WHERE fc.key_name = 'texture' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'boisson');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Crème', 'creme', 1, 20 FROM filter_categories fc WHERE fc.key_name = 'texture' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'creme');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Poudre', 'poudre', 1, 30 FROM filter_categories fc WHERE fc.key_name = 'texture' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'poudre');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Gelée', 'gelee', 1, 40 FROM filter_categories fc WHERE fc.key_name = 'texture' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'gelee');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Purée', 'puree', 1, 50 FROM filter_categories fc WHERE fc.key_name = 'texture' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'puree');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Velouté', 'veloute', 1, 60 FROM filter_categories fc WHERE fc.key_name = 'texture' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'veloute');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Céréales', 'cereales', 1, 70 FROM filter_categories fc WHERE fc.key_name = 'texture' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'cereales');
+
+-- Gouts
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Fruité', 'fruite', 1, 10 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'fruite');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Lacté', 'lacte', 1, 20 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'lacte');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Chocolat', 'chocolat', 1, 30 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'chocolat');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Vanille', 'vanille', 1, 40 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'vanille');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Café', 'cafe', 1, 50 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'cafe');
+INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
+  SELECT fc.id, 'Neutre', 'neutre', 1, 60 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'neutre');
