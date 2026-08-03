@@ -11,6 +11,7 @@ export interface ProductCardItem {
   regime: string;
   badge?: string;
   badgeColor?: string;
+  priceTtc?: number;
 }
 
 const buildFlavorsLabel = (count: number) => (count <= 1 ? "1 saveur" : `${count} saveurs`);
@@ -55,6 +56,7 @@ export const fetchProductCards = async (filters: {
     regime: product.regime,
     badge: product.badge,
     badgeColor: product.badgeColor,
+    priceTtc: product.priceTtc ? Number(product.priceTtc) : 0,
   }));
 };
 

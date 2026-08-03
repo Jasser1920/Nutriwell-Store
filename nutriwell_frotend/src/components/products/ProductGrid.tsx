@@ -48,9 +48,18 @@ const ProductGrid = ({ activeTexture, activeGout, activeRegime }: Props) => {
                       loading="lazy"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[11px] text-muted-foreground" style={{ fontSize: '14px', fontWeight: '600' }}>{product.flavors}</p>
-                    <h3 className="font-heading font-semibold text-foreground text-[20px] group-hover:text-primary transition-colors leading-snug">
+                  <div className="space-y-1.5 mt-auto">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[13px] font-semibold text-muted-foreground">{product.flavors}</p>
+                      {product.priceTtc && product.priceTtc > 0 ? (
+                        <span className="text-sm font-extrabold text-secondary tracking-tight">
+                          {product.priceTtc.toFixed(3).replace(".", ",")} DT
+                        </span>
+                      ) : (
+                        <span className="text-xs font-medium text-muted-foreground">Sur devis</span>
+                      )}
+                    </div>
+                    <h3 className="font-heading font-semibold text-foreground text-[18px] group-hover:text-primary transition-colors leading-snug line-clamp-2">
                       {product.name}
                     </h3>
                   </div>

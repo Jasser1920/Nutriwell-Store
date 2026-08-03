@@ -76,6 +76,12 @@ const AdminProducts = () => {
               Filtres
             </Link>
             <Link
+              to="/admin/orders"
+              className="rounded-full bg-secondary text-secondary-foreground px-5 py-2 text-sm font-semibold hover:bg-secondary/90 shadow-sm"
+            >
+              Commandes
+            </Link>
+            <Link
               to="/admin/location"
               className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
             >

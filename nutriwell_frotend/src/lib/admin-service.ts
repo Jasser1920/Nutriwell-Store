@@ -10,6 +10,7 @@ export interface AdminProductItem {
   gout: string;
   goutOptionId?: string;
   regime: string;
+  priceTtc?: number;
   is_published: boolean;
   updated_at: string;
 }
@@ -75,6 +76,7 @@ export interface AdminProductFormInput {
   gout: string;
   goutOptionId?: string;
   regime: string;
+  priceTtc?: number;
   badge: string;
   badgeColor: string;
   image: string;

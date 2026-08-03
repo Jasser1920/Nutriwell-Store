@@ -34,6 +34,25 @@ export class ProductsService {
     if (Number((goutRows[0] as any)?.c ?? 0) === 0) {
       await this.db.execute("ALTER TABLE products ADD COLUMN gout_filter_option_id BIGINT UNSIGNED DEFAULT NULL");
     }
+
+    const [priceRows] = await this.db.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS c
+       FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'products' AND column_name = 'price_ttc'`,
+    );
+    if (Number((priceRows[0] as any)?.c ?? 0) === 0) {
+      await this.db.execute("ALTER TABLE products ADD COLUMN price_ttc DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+    }
+
+    // Auto-update price_ttc for existing database records if 0.00
+    await this.db.execute("UPDATE products SET price_ttc = 49.00 WHERE slug = 'futurefuel-breakfast-pro-cafe' AND (price_ttc IS NULL OR price_ttc = 0)");
+    await this.db.execute("UPDATE products SET price_ttc = 65.00 WHERE slug = 'nutriwell-pro-poudre-de-proteines' AND (price_ttc IS NULL OR price_ttc = 0)");
+    await this.db.execute("UPDATE products SET price_ttc = 48.00 WHERE slug = 'nutriwell-growth-kids-chocolat' AND (price_ttc IS NULL OR price_ttc = 0)");
+    await this.db.execute("UPDATE products SET price_ttc = 26.00 WHERE slug = 'nutriwell-calorix-poudre-enrichissement' AND (price_ttc IS NULL OR price_ttc = 0)");
+    await this.db.execute("UPDATE products SET price_ttc = 46.00 WHERE slug = 'futurefuel-poudre-proteinee-chocolat' AND (price_ttc IS NULL OR price_ttc = 0)");
+    await this.db.execute("UPDATE products SET price_ttc = 49.00 WHERE slug = 'nutriwell-energie-plus-fraise' AND (price_ttc IS NULL OR price_ttc = 0)");
+    await this.db.execute("UPDATE products SET price_ttc = 55.00 WHERE slug = 'nutriwell-complet-hp-vanille' AND (price_ttc IS NULL OR price_ttc = 0)");
+    await this.db.execute("UPDATE products SET price_ttc = 35.00 WHERE price_ttc IS NULL OR price_ttc = 0");
   }
 
   private async ensureFilterTables() {
@@ -232,7 +251,7 @@ export class ProductsService {
 
     const limit = Number(query.limit ?? 24);
     const [rows] = await this.db.query<RowDataPacket[]>(
-      `SELECT id, slug, name, image, texture, gout, regime, badge, badge_color, texture_filter_option_id, gout_filter_option_id FROM products WHERE ${where.join(" AND ")} ORDER BY name ASC LIMIT ${Number.isFinite(limit) ? Math.min(Math.max(limit,1),40) : 24}`,
+      `SELECT id, slug, name, image, texture, gout, regime, badge, badge_color, price_ttc, texture_filter_option_id, gout_filter_option_id FROM products WHERE ${where.join(" AND ")} ORDER BY name ASC LIMIT ${Number.isFinite(limit) ? Math.min(Math.max(limit,1),40) : 24}`,
       params,
     );
 
@@ -259,6 +278,7 @@ export class ProductsService {
         goutOptionId: r.gout_filter_option_id ? String(r.gout_filter_option_id) : "",
         badge: r.badge ?? undefined,
         badgeColor: r.badge_color ?? undefined,
+        priceTtc: Number(r.price_ttc ?? 0),
         ...(asArray ? { flavors: Array.from({ length: c }, (_, i) => `saveur-${i + 1}`) } : { flavors: label, flavorsLabel: label }),
       };
     });
@@ -269,7 +289,7 @@ export class ProductsService {
     await this.ensureProductFilterRelations();
 
     const [rows] = await this.db.query<RowDataPacket[]>(
-      "SELECT id, slug, name, category, short_description, texture, gout, regime, badge, badge_color, image, rating, review_count, nutrition_table_json, texture_filter_option_id, gout_filter_option_id FROM products WHERE slug = ? AND is_published = 1 LIMIT 1",
+      "SELECT id, slug, name, category, short_description, texture, gout, regime, badge, badge_color, image, rating, review_count, price_ttc, nutrition_table_json, texture_filter_option_id, gout_filter_option_id FROM products WHERE slug = ? AND is_published = 1 LIMIT 1",
       [slug],
     );
     const p: any = rows[0];
@@ -279,10 +299,11 @@ export class ProductsService {
 
   async listAdmin() {
     await this.ensureProductFilterRelations();
-    const [rows] = await this.db.query<RowDataPacket[]>("SELECT id, slug, name, category, texture, gout, regime, texture_filter_option_id, gout_filter_option_id, is_published, updated_at FROM products ORDER BY updated_at DESC");
+    const [rows] = await this.db.query<RowDataPacket[]>("SELECT id, slug, name, category, texture, gout, regime, price_ttc, texture_filter_option_id, gout_filter_option_id, is_published, updated_at FROM products ORDER BY updated_at DESC");
     return (rows as any[]).map((r) => ({
       ...r,
       id: String(r.id),
+      priceTtc: Number(r.price_ttc ?? 0),
       is_published: !!r.is_published,
       textureOptionId: r.texture_filter_option_id ? String(r.texture_filter_option_id) : "",
       goutOptionId: r.gout_filter_option_id ? String(r.gout_filter_option_id) : "",
@@ -307,7 +328,7 @@ export class ProductsService {
       gout: full.gout,
       goutOptionId: p.gout_filter_option_id ? String(p.gout_filter_option_id) : "",
       regime: full.regime,
-      // price and pricePerUnit removed
+      priceTtc: Number(p.price_ttc ?? 0),
       badge: full.badge ?? "",
       badgeColor: full.badgeColor ?? "",
       image: full.image,
@@ -346,7 +367,7 @@ export class ProductsService {
       gout: goutOption?.label ?? str(body.gout),
       gout_filter_option_id: goutOption ? Number(goutOption.id) : null,
       regime: str(body.regime),
-      // price and price_per_unit removed
+      price_ttc: Number(body.priceTtc ?? body.price_ttc ?? 0),
       badge: str(body.badge) || null,
       badge_color: str(body.badgeColor) || null,
       image: str(body.image) || null,
@@ -359,14 +380,14 @@ export class ProductsService {
     let productId = id;
     if (id) {
       const [res] = await this.db.execute<ResultSetHeader>(
-        "UPDATE products SET slug=?,name=?,category=?,short_description=?,texture=?,texture_filter_option_id=?,gout=?,gout_filter_option_id=?,regime=?,badge=?,badge_color=?,image=?,rating=?,review_count=?,is_published=?,nutrition_table_json=? WHERE id=?",
-        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.texture_filter_option_id,payload.gout,payload.gout_filter_option_id,payload.regime,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json,id],
+        "UPDATE products SET slug=?,name=?,category=?,short_description=?,texture=?,texture_filter_option_id=?,gout=?,gout_filter_option_id=?,regime=?,price_ttc=?,badge=?,badge_color=?,image=?,rating=?,review_count=?,is_published=?,nutrition_table_json=? WHERE id=?",
+        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.texture_filter_option_id,payload.gout,payload.gout_filter_option_id,payload.regime,payload.price_ttc,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json,id],
       );
       if (!res.affectedRows) throw new NotFoundException("Product not found");
     } else {
       const [res] = await this.db.execute<ResultSetHeader>(
-        "INSERT INTO products (slug,name,category,short_description,texture,texture_filter_option_id,gout,gout_filter_option_id,regime,badge,badge_color,image,rating,review_count,is_published,nutrition_table_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.texture_filter_option_id,payload.gout,payload.gout_filter_option_id,payload.regime,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json],
+        "INSERT INTO products (slug,name,category,short_description,texture,texture_filter_option_id,gout,gout_filter_option_id,regime,price_ttc,badge,badge_color,image,rating,review_count,is_published,nutrition_table_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [payload.slug,payload.name,payload.category,payload.short_description,payload.texture,payload.texture_filter_option_id,payload.gout,payload.gout_filter_option_id,payload.regime,payload.price_ttc,payload.badge,payload.badge_color,payload.image,payload.rating,payload.review_count,payload.is_published,payload.nutrition_table_json],
       );
       productId = String(res.insertId);
     }
@@ -489,7 +510,7 @@ export class ProductsService {
       category: p.category,
       flavors: (f[0] as any[]).map((x) => x.name),
       formats: (fo[0] as any[]).map((x) => x.label),
-      // price and pricePerUnit removed
+      priceTtc: Number(p.price_ttc ?? 0),
       badge: p.badge ?? undefined,
       badgeColor: p.badge_color ?? undefined,
       image: p.image ?? imgs[0] ?? "",

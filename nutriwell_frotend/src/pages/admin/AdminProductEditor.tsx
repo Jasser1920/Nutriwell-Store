@@ -19,6 +19,10 @@ const emptyForm: AdminProductFormInput = {
   gout: "",
   goutOptionId: "",
   regime: "",
+  priceTtc: 0,
+  badge: "",
+  badgeColor: "",
+  image: "",
 
   descriptions: [],
   benefits: [],
@@ -378,6 +382,18 @@ const AdminProductEditor = () => {
                 onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
                 required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Prix (DT)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.priceTtc ?? 0}
+                onChange={(e) => setForm((prev) => ({ ...prev, priceTtc: parseFloat(e.target.value) || 0 }))}
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 font-bold text-secondary"
+                placeholder="Ex: 14.50"
               />
             </div>
             <div>

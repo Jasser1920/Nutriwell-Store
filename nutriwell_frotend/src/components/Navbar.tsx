@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Menu, X, MapPin, Phone } from "lucide-react";
+import { Menu, X, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import NutriwellLogo from "./NutriwellLogo";
+import { useCart } from "@/context/CartContext";
 
 const navLinks = [
   { label: "Nos Produits", href: "/products" },
@@ -13,6 +14,7 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { cartCount, setIsCartOpen } = useCart();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -79,24 +81,42 @@ const Navbar = () => {
           )}
         </nav>
 
-        <div className="hidden lg:flex items-center gap-5">
-          <Link to="/store-locator" className="text-foreground/50 hover:text-secondary transition-all duration-200 flex flex-col items-center" aria-label="Trouver une pharmacie">
-            <MapPin size={20} />
-            <span className="text-xs mt-1">Location</span>
-          </Link>
-          <Link to="/contact" className="text-foreground/50 hover:text-secondary transition-all duration-200 flex flex-col items-center" aria-label="Contact">
-            <Phone size={20} />
-            <span className="text-xs mt-1">Contact</span>
-          </Link>
-        </div>
+        <div className="flex items-center gap-5">
+          <div className="hidden lg:flex items-center gap-5">
+            <Link to="/store-locator" className="text-foreground/50 hover:text-secondary transition-all duration-200 flex flex-col items-center" aria-label="Trouver une pharmacie">
+              <MapPin size={20} />
+              <span className="text-xs mt-1">Location</span>
+            </Link>
+            <Link to="/contact" className="text-foreground/50 hover:text-secondary transition-all duration-200 flex flex-col items-center" aria-label="Contact">
+              <Phone size={20} />
+              <span className="text-xs mt-1">Contact</span>
+            </Link>
+          </div>
 
-        <button
-          className="lg:hidden text-foreground"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Ouvrir le menu"
-        >
-          {mobileOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="relative text-foreground/70 hover:text-secondary transition-all duration-200 flex flex-col items-center p-1"
+            aria-label="Mon Panier"
+          >
+            <div className="relative">
+              <ShoppingBag size={22} />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-secondary text-secondary-foreground text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-scale-in shadow-sm">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+            <span className="text-xs mt-1 hidden lg:block font-medium">Panier</span>
+          </button>
+
+          <button
+            className="lg:hidden text-foreground ml-2"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Ouvrir le menu"
+          >
+            {mobileOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (

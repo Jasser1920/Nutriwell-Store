@@ -2,6 +2,8 @@ CREATE DATABASE IF NOT EXISTS nutriwell CHARACTER SET utf8mb4 COLLATE utf8mb4_un
 USE nutriwell;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS admin_sessions;
 DROP TABLE IF EXISTS admin_users;
 DROP TABLE IF EXISTS page_contents;
@@ -64,6 +66,7 @@ CREATE TABLE products (
   nutrition_table_json LONGTEXT DEFAULT NULL,
   rating DECIMAL(3,1) NOT NULL DEFAULT 0,
   review_count INT NOT NULL DEFAULT 0,
+  price_ttc DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   is_published TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -278,3 +281,51 @@ INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_ord
   SELECT fc.id, 'Café', 'cafe', 1, 50 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'cafe');
 INSERT IGNORE INTO filter_options (category_id, label, slug, is_active, sort_order)
   SELECT fc.id, 'Neutre', 'neutre', 1, 60 FROM filter_categories fc WHERE fc.key_name = 'gout' AND NOT EXISTS (SELECT 1 FROM filter_options fo WHERE fo.slug = 'neutre');
+
+-- Orders Management Tables
+CREATE TABLE orders (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  order_reference VARCHAR(64) NOT NULL,
+  first_name VARCHAR(191) NOT NULL,
+  last_name VARCHAR(191) NOT NULL,
+  email VARCHAR(191) NOT NULL,
+  phone VARCHAR(32) NOT NULL,
+  address VARCHAR(255) NOT NULL,
+  postal_code VARCHAR(32) DEFAULT NULL,
+  city VARCHAR(191) DEFAULT NULL,
+  notes TEXT DEFAULT NULL,
+  total_ttc DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  status ENUM('en_attente', 'acceptee', 'refusee') NOT NULL DEFAULT 'en_attente',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_orders_ref (order_reference)
+) ENGINE=InnoDB;
+
+CREATE TABLE order_items (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  order_id BIGINT UNSIGNED NOT NULL,
+  product_id BIGINT UNSIGNED DEFAULT NULL,
+  product_name VARCHAR(191) NOT NULL,
+  product_slug VARCHAR(191) DEFAULT NULL,
+  flavor VARCHAR(191) DEFAULT NULL,
+  format VARCHAR(191) DEFAULT NULL,
+  unit_price_ttc DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  quantity INT NOT NULL DEFAULT 1,
+  total_price_ttc DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (id),
+  KEY idx_oi_order (order_id),
+  CONSTRAINT fk_oi_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Seed Real Products
+INSERT IGNORE INTO products (slug, name, category, short_description, texture, gout, regime, badge, badge_color, image, rating, review_count, price_ttc, is_published) VALUES
+  ('futurefuel-breakfast-pro-cafe', 'FUTUREFUEL BREAKFAST PRO POUDRE PETIT DEJEUNER CAFE 400MG', 'Énergie - Vitalité', 'Poudre pour petit déjeuner hyperénergétique goût café, formule enrichie pour démarrer la journée avec vitalité.', 'Poudre', 'Café', 'Standard', 'TOP VENTE', 'bg-secondary text-secondary-foreground', 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&h=600&fit=crop', 4.8, 34, 49.000, 1),
+  ('nutriwell-pro-poudre-de-proteines', 'NUTRIWELL PRO POUDRE DE PROTEINES 400MG', 'Énergie - Vitalité', 'Poudre de protéines hautement assimilable pour le maintien et le renforcement de la masse musculaire et la vitalité.', 'Poudre', 'Neutre', 'Hyperprotéiné', 'HAUTE QUALITÉ', 'bg-primary text-primary-foreground', 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=600&h=600&fit=crop', 4.9, 52, 65.000, 1),
+  ('nutriwell-growth-kids-chocolat', 'NUTRIWELL GROWTH KIDS POUDRE ENERGETIQUE CHOCOLAT 400MG', 'Énergie - Vitalité', 'Poudre énergétique spécialement formulée pour la croissance des enfants, goût chocolat gourmand.', 'Poudre', 'Chocolat', 'Standard', 'KIDS', 'bg-accent text-accent-foreground', 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=600&h=600&fit=crop', 4.7, 29, 48.000, 1),
+  ('nutriwell-calorix-poudre-enrichissement', 'NUTRIWELL CALORIX POUDRE D ENRICHISSEMENT 400MG', 'Prise Du Poids', 'Poudre d enrichment calorique pour favoriser la prise de poids saine et l apport nutritionnel.', 'Poudre', 'Neutre', 'Hypercalorique', 'PRISE DE POIDS', 'bg-amber-600 text-white', 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&h=600&fit=crop', 4.6, 18, 26.000, 1),
+  ('futurefuel-poudre-proteinee-chocolat', 'FUTUREFUEL POUDRE PROTEINEE CHOCOLAT 400MG', 'Énergie - Vitalité', 'Poudre protéinée gourmande goût chocolat, riche en acides aminés essentiels pour l énergie quotidienne.', 'Poudre', 'Chocolat', 'Hyperprotéiné', 'ENERGIE', 'bg-primary text-primary-foreground', 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=600&h=600&fit=crop', 4.7, 41, 46.000, 1),
+  ('nutriwell-energie-plus-fraise', 'NUTRIWELL ENERGIE+ POUDRE DE PROTEINES AROME FRAISE 400MG', 'Énergie - Vitalité', 'Poudre de protéines délicieusement parfumée à la fraise pour booster l énergie et la récupération.', 'Poudre', 'Fruité', 'Hyperprotéiné', 'FRUITÉ', 'bg-rose-500 text-white', 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=600&h=600&fit=crop', 4.8, 38, 49.000, 1),
+  ('nutriwell-complet-hp-vanille', 'NUTRIWELL COMPLET HP POUDRE DE PROTEINES AROME VANILLE 400MG', 'Carence en vitamines et minéraux', 'Formule complète HP (Hyperprotéinée & Vitamines) arôme vanille pour combler les carences nutritionnelles.', 'Poudre', 'Vanille', 'Hyperprotéiné', 'COMPLET HP', 'bg-secondary text-secondary-foreground', 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=600&h=600&fit=crop', 4.9, 45, 55.000, 1);
+
+

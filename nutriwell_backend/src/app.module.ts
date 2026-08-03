@@ -8,9 +8,10 @@ import { RecipesModule } from "./recipes/recipes.module";
 import { ContactModule } from "./contact/contact.module";
 import { ContentModule } from "./content/content.module";
 import { LocationsModule } from "./locations/locations.module";
+import { OrdersModule } from "./orders/orders.module";
 
 @Module({
-  imports: [MysqlModule, AuthModule, ProductsModule, FiltersModule, RecipesModule, ContactModule, ContentModule, LocationsModule],
+  imports: [MysqlModule, AuthModule, ProductsModule, FiltersModule, RecipesModule, ContactModule, ContentModule, LocationsModule, OrdersModule],
   controllers: [AppController],
 })
 export class AppModule {}
