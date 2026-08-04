@@ -2,7 +2,7 @@ import { Search, Leaf, Flag } from "lucide-react";
 import ScrollReveal from "@/components/ScrollReveal";
 
 const items = [
-  { icon: Search, title: "80 produits et 40 saveurs", desc: "Pour toujours avoir le choix" },
+  { icon: Search, title: "Divers produits et saveurs", desc: "Pour toujours avoir le choix" },
   { icon: Leaf, title: "Réalisés par des experts", desc: "En nutrition médicale" },
   { icon: Flag, title: "Fabriqués en Tunisie", desc: "Qualité et traçabilité garanties" },
 ];
