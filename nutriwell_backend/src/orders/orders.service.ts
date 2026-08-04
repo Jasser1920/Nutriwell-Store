@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from "@nestjs/comm
 import { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { MysqlService } from "../common/mysql.service";
 
-const DELIVERY_FEE = 9;
+const DELIVERY_FEE = 5;
 
 type CreateOrderItemInput = {
   productId?: number | string;

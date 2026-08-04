@@ -17,7 +17,7 @@ const formatPrice = (price: number) => {
   return `${price.toFixed(3).replace(".", ",")} DT`;
 };
 
-const DELIVERY_FEE = 9;
+const DELIVERY_FEE = 5;
 
 const Checkout: React.FC = () => {
   const { cart, totalTtc, clearCart } = useCart();
