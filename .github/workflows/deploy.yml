@@ -24,14 +24,21 @@ jobs:
           script: |
             set -e
             echo "🚀 Navigating to project directory..."
-            cd ${{ secrets.SERVER_PROJECT_PATH || '~/Nutriwell-Store' }}
+            cd ${{ secrets.SERVER_PROJECT_PATH || '/opt/nutriwell' }}
             
             echo "📥 Pulling latest changes from git..."
             git pull origin $(git rev-parse --abbrev-ref HEAD)
             
-            echo "🐳 Rebuilding and restarting Docker containers..."
-            docker-compose down
-            docker-compose up -d --build
+            echo "🐳 Detecting Docker Compose command..."
+            if command -v docker-compose &> /dev/null; then
+              DOCKER_COMPOSE="docker-compose"
+            else
+              DOCKER_COMPOSE="docker compose"
+            fi
+            
+            echo "🐳 Rebuilding and restarting Docker containers using '$DOCKER_COMPOSE'..."
+            $DOCKER_COMPOSE down
+            $DOCKER_COMPOSE up -d --build
             
             echo "🧹 Cleaning up unused Docker images..."
             docker image prune -f
