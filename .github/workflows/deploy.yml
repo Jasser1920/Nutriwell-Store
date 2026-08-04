@@ -26,6 +26,9 @@ jobs:
             echo "🚀 Navigating to project directory..."
             cd ${{ secrets.SERVER_PROJECT_PATH || '/opt/nutriwell' }}
             
+            echo "🧹 Cleaning local changes on server to prevent git pull conflicts..."
+            git reset --hard HEAD
+            
             echo "📥 Pulling latest changes from git..."
             git pull origin $(git rev-parse --abbrev-ref HEAD)
             
